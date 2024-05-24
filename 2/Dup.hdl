@@ -1,0 +1,12 @@
+
+CHIP Dup
+{
+	IN
+		in;
+	OUT 
+		a, b;
+
+	PARTS:
+	Or(a=in, b=in, out=a);
+	Or(a=in, b=in, out=b);
+}
