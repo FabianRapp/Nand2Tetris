@@ -1,0 +1,19 @@
+//sets unselected bit high
+// sel == 0 -> a == in && b == 1
+// sel == 1 -> a == 1 && b == in
+
+
+CHIP HighDMux {
+	IN in, sel;
+	OUT a, b;
+
+	PARTS:
+		Not(in=sel, out=Notsel);
+
+		//a
+		And(a=in, b=Notsel, out=inAndNotsel);
+		Or(a=inAndNotsel, b=sel, out=a);
+		//b
+		And(a=in, b=sel, out=inAndsel);
+		Or(a=inAndsel, b=Notsel, out=b);
+}
