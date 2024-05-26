@@ -18,21 +18,27 @@ CHIP RAM16K {
     RAM4K(in=in, load=load1, address=address[2..13], out=RAMOLD1);
     RAM4K(in=in, load=load2, address=address[2..13], out=RAMOLD2);
     RAM4K(in=in, load=load3, address=address[2..13], out=RAMOLD3);
-    Mux4Way16(
-        a=RAMOLD0,
+    Mux8Way16(a=RAMOLD0,
         b=RAMOLD1,
         c=RAMOLD2,
         d=RAMOLD3,
-        sel[0..1]=address[0..1],
+        e=RAMOLD4,
+        f=RAMOLD5,
+        g=RAMOLD6,
+        h=RAMOLD7,
+        sel[0..2]=address[0..2],
         out=out
     );
      
-    DMux4Way(
-        in=load,
-        sel=address[0..1],
+    DMux8Way(in=load,
+        sel=address[0..2],
         a=load0,
         b=load1,
         c=load2,
-        d=load3
+        d=load3,
+        e=load4,
+        f=load5,
+        g=load6,
+        h=load7
     );
 }
