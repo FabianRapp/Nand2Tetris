@@ -1,0 +1,15 @@
+#include "nand2tetris_asm_c.h"
+(test1)    
+
+(adasd)
+(asdq1)
+(test2)
+int main(void)
+{
+    (test3)
+    printf("test\n");
+    return (0);
+}
+
+
+END_CODE
