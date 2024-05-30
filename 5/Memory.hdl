@@ -19,11 +19,122 @@
  * map. Access to address 0x6000 results in accessing the keyboard 
  * memory map. The behavior in these addresses is described in the Screen
  * and Keyboard chip specifications given in the lectures and the book.
+
+ COMMENTS AND CODE FOR ORIGINAL IMPLEMENTATION:
+ While implementing I did not realize we are supposed to use buildin keyboard
+ and screen buffers from the online IDE. I was debugging for 10 hours and
+ do not want to delete all I have done so I will just leave it in :)
+
+ Memory address space overview:
+
+
+    deci.*s deci.*e hex*s   hex*e   binary*s            binary*e
+ R* 0       16383   x0000   x3FFF   b000000000000000    b11111111111111
+ S* 16384   24575   x4000   x5FFF   b100000000000000    b101111111111111  
+ S0*16384   20479   x4000   x4FFF   b100000000000000    b100111111111111
+ S1*20480   24575   x5000   x5FFF   b101000000000000    b101111111111111
+ K* 24576   24576   x6000   x6000   b110000000000000    b110000000000000
+                                                        i432+10..rest unimport.
+ *R:RAM
+ *S:Screen
+ *S0:First Screen memory module
+ *S1:Second Screen memory module
+ *K:Keyboard
+ *s: start
+ *e: end
  */
+
+/*
+I spend all day debugging this...Appearently my code works but the tester
+expects that the build in modules like keyboard and sceen should use the
+provied chips and should not be implemented..
+Only when I switch to the online IDE it the buildin Chips are listed...
+FUUUCK
+*/
 CHIP Memory {
     IN in[16], load, address[15];
     OUT out[16];
 
     PARTS:
-	//// Replace this comment with your code.
+    Or16(a=in, b=false, out=INDEBUG);
+    Or(a=load, b=false, out=LOADDEBUG);
+    Or16(a[0..14]=address, a[15]=false, b=false, out=ADDRESSDEBUG,
+        out[0..13]=RAMADDRESSDEBUG);
+    Keyboard(out=oldKBD);//, out[0..7]=KBDDATA1, out[8..15]=KBDDATA2);
+    //Or8Way(in=KBDDATA1, out=loadkbd1);
+    //Or8Way(in=KBDDATA2, out=loadkbd2);
+    //Or(a=loadkbd1, b=loadkbd2, out=loadKBD);
+
+    //Or(a=loadkbd1, b=loadkbd2, out=loadkbdbuildin);
+   // And(a=loadkbdbuildin, b=load, out=loadKBD);
+    //============storage============
+    //main RAM, 16384 * 2-byte registers
+    //in[16], load[1], address[14], out[16]
+   // Or16(a[0..15]=address, a[15]=false, b=false, out[1..14]=RAMADDRESSDEBUG);
+
+    RAM16K(in=in, load=loadRAM, address=RAMADDRESSDEBUG, out=oldRAM);
+
+    //RAM16K(in=in, load=loadRAM, address=address, out=oldRAM);
+
+    //Screen
+    // 2* 4096 * 2-byte registers,
+    // each of the two parts: in[16], load[1], address[12], out[16]
+    Or(a=loadS0, b=loadS1, out=LoadTheStupidBuiltInScreen);
+    Screen(in=in, load=LoadTheStupidBuiltInScreen, address=address[0..12],
+        out=oldSCREEN0, out=oldSCREEN1);//who tf uses an online IDE...........
+    //RAM4K(in=in, load=loadS0, address=address[0..11], out=oldSCREEN0);
+   // RAM4K(in=in, load=loadS1, address=address[0..11], out=oldSCREEN1);
+
+    //Keyboard, 1 2-byte Regeister: //in[16], load[1], out[16]
+    //Register(in=KBDDATA, load=loadKBD, out=oldKBD);
+    //============storage end========
+    /*
+    For this comment: A is address[14], B is address[13], C is address[12]
+    sel[2] for Mux4Way16:
+    A       B       C       result      sel[0]  sel[1]
+    0       0       0       RAM         0       0
+    0       0       1       RAM         0       0
+    0       1       0       RAM         0       0
+    0       1       1       RAM         0       0
+    1       0       0       S0          0       1
+    1       0       1       S1          1       0
+    1       1       0       KBD         1       1
+    1       1       1       INVALID     x       x
+
+    sel[1] = (A&B&!C)|(A&!B&!C)==A&!C
+    sel[0] = (A&!B&C) | (A&B&!C)
+
+    Implementation:
+    */
+    //!!READ THE COMMENT ABOVE
+    Not(in=address[12], out=NotC);
+    And(a=address[14], b=NotC, out=isS0, out=AandnotC, out=mux4sel1);
+
+    And(a=AandnotC, b=address[13], out=AandBandnotC);
+    Not(in=address[13], out=notB);
+    And(a=address[14], b=notB, out=AandnotB);
+    And(a=AandnotB, b=address[12], out=AandnotBandC);
+    
+    Or(a=AandnotBandC, b=AandBandnotC, out=mux4sel0);
+
+    Mux4Way16(
+        a=oldRAM,
+        b=oldSCREEN0,
+        c=oldSCREEN1,
+        d=oldKBD,
+        sel[0]=mux4sel0,
+        sel[1]=mux4sel1,
+        out=out
+    );
+    
+    //============fill load==========
+    Not(in=address[14], out=isRam);
+    And(a=isRam, b=load, out=loadRAM);//loadRam taken out of existing output
+   // And(a=address[14], b=address[13], out=isKBD);
+    //And(a=isKBD, b=load, out=loadKBD);
+    And(a=isS0, b=load, out=loadS0);
+    And(a=address[14], b=address[12], out=isS1);
+    And(a=isS1, b=load, out=loadS1);
+    //===============================
+   
 }
