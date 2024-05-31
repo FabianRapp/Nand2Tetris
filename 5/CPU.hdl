@@ -32,5 +32,96 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	//// Replace this comment with your code.
+	PC(in=pcRA, inc=notCinstruct2, load=JUMP, reset=reset, out[0..14]=pc);
+	ALU(
+		x=inMEMorRA,
+		y=RD,
+		zx=instruction[9],
+		nx=instruction[10],
+		zy=instruction[11],
+		ny=instruction[8],
+		f=instruction[7],
+		no=instruction[6],
+		out=internalOutALUaddress,
+		out=internalOutALUdata,
+		out=outM,
+		zr=outALUzero1,
+		zr=outALUzeroJMP,
+		zr=tmpzr1,
+		ng=outALUnegative1,
+		ng=outALUnegativeJMP,
+		ng=tmpng1
+	);
+	Or(a=outALUzero1, b=outALUnegative1, out=smallerEQtmp, out=ALUsmallereqJMP);
+	Not(in=smallerEQtmp, out=positivetmp1, out=positivetmp2, out=outALUpositiveJMP);
+	Or(a=positivetmp1, b=tmpng1, out=outALUnegativepositiveJMP);
+	Or(a=positivetmp2, b=tmpzr1, out=outALUeqpositiveJMP);
+
+
+	Not(in=instruction[15], out=testloadA, out=notCinstruct1, out=notCinstruct2);
+	Or(a=loadRAC, b=notCinstruct1, out=loadRA);
+	Register(in=newRA, load=loadRA, out=aluRA, out=pcRA, out[15]=lastType, out[0..14]=addressM);
+
+	Register(in=internalOutALUdata, load=loadRD, out=RD);
+
+	//======C instruction==================
+	// if instruction[15] -> C-instruction
+	//=======deterimine COMPUTATION========
+
+	//=======determine WRITE===============
+	DMux8Way(
+		in=instruction[15],
+		sel=instruction[3..5],
+		b=loadRM1,
+		c=loadRD1,
+		d=loadRMRD,
+		e=loadRA1,
+		f=loadRARM1,
+		g=loadRARD1,
+		h=loadRARMRD
+	);
+	// load A?
+	Or(a=loadRA1, b=loadRARM1, out=loadRA2);
+	Or(a=loadRARD1, b=loadRARMRD, out=loadRARD);
+	Or(a=loadRARD, b=loadRA2, out=loadRAC);
+	//load RM? (memory)
+	Or(a=loadRMRD, b=loadRM1, out=loadRM2);
+	Or(a=loadRARMRD, b=loadRARM1, out=loadRARM);
+	Or(a=loadRARM, b=loadRM2, out=writeM);
+	//load RD?
+	Or(a=loadRARD, b=loadRD1, out=loadRD2);
+	Or(a=loadRD2, b=loadRMRD, out=loadRD);
+	//=======determine JUMP================
+	DMux8Way(
+		in=instruction[15],
+		sel=instruction[0..2],
+		b=JGT,
+		c=JEQ,
+		d=JGE,
+		e=JLT,
+		f=JNE,
+		g=JLE,
+		h=JMP1
+	);
+	And(a=JGT, b=outALUpositiveJMP, out=JMP2);
+	And(a=JEQ, b=outALUzeroJMP, out=JMP3);
+	And(a=JGE, b=outALUpositiveJMP, out=JMP4);
+	And(a=JLT, b=outALUnegativeJMP, out=JMP5);
+	And(a=JLE, b=ALUsmallereqJMP, out=JMP6);
+	And(a=JNE, b=outALUnegativepositiveJMP, out=JMP7);
+	Or8Way(
+		in[0]=JMP1,
+		in[1]=JMP2,
+		in[2]=JMP3,
+		in[3]=JMP4,
+		in[4]=JMP5,
+		in[5]=JMP6,
+		in[6]=JMP7,
+		in[7]=false,
+		out=JUMP
+	);
+	//=====================================
+	And(a=instruction[15], b=instruction[12], out=CaInstruction);
+	Mux16(a=instruction, b=internalOutALUaddress, sel=lastType, out=newRA);
+	Mux16(a=aluRA, b=inM, sel=CaInstruction, out=inMEMorRA);
 }

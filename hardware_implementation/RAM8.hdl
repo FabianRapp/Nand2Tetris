@@ -1,0 +1,105 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/3/a/RAM8.hdl
+/**
+ * Memory of eight 16-bit registers.
+ * If load is asserted, the value of the register selected by
+ * address is set to in; Otherwise, the value does not change.
+ * The value of the selected register is emitted by out.
+ */
+CHIP RAM8 {
+    IN in[16], load, address[3];
+    OUT out[16];
+
+    PARTS:
+    Register(
+        in=NewReg0,
+        load=Load0,
+        out=Oldreg0
+    );
+    Register(
+        in=NewReg1,
+        load=Load1,
+        out=Oldreg1
+    );
+    Register(
+        in=NewReg2,
+        load=Load2,
+        out=Oldreg2
+    );
+    Register(
+        in=NewReg3,
+        load=Load3,
+        out=Oldreg3
+    );
+    Register(
+        in=NewReg4,
+        load=Load4,
+        out=Oldreg4
+    );
+    Register(
+        in=NewReg5,
+        load=Load5,
+        out=Oldreg5
+    );
+    Register(
+        in=NewReg6,
+        load=Load6,
+        out=Oldreg6
+    );
+    Register(
+        in=NewReg7,
+        load=Load7,
+        out=Oldreg7
+    );
+
+    DMux8Way(in=true, sel=address,
+        a=n0Load0,
+        b=n0Load1,
+        c=n0Load2,
+        d=n0Load3,
+        e=n0Load4,
+        f=n0Load5,
+        g=n0Load6,
+        h=n0Load7
+    );
+    
+    And(a=n0Load0, b=load, out=Load0);
+    And(a=n0Load1, b=load, out=Load1);
+    And(a=n0Load2, b=load, out=Load2);
+    And(a=n0Load3, b=load, out=Load3);
+    And(a=n0Load4, b=load, out=Load4);
+    And(a=n0Load5, b=load, out=Load5);
+    And(a=n0Load6, b=load, out=Load6);
+    And(a=n0Load7, b=load, out=Load7);
+
+    Mux8Way16(
+        a=Oldreg0,
+        b=Oldreg1,
+        c=Oldreg2,
+        d=Oldreg3,
+        e=Oldreg4,
+        f=Oldreg5,
+        g=Oldreg6,
+        h=Oldreg7,
+        sel=address,
+        out=OldVal,
+        out=out
+    );
+
+    Mux16(
+        a=OldVal,
+        b=in,
+        sel=load,
+        out=NewReg0,
+        out=NewReg1,
+        out=NewReg2,
+        out=NewReg3,
+        out=NewReg4,
+        out=NewReg5,
+        out=NewReg6,
+        out=NewReg7
+    );
+}    
+
