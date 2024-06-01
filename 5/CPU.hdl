@@ -19,7 +19,6 @@
  * their new values only in the next cycle.
  */
 CHIP CPU {
-
     IN  inM[16],         // M value input  (M = contents of RAM[A])
         instruction[16], // Instruction for execution
         reset;           // Signals whether to re-start the current
@@ -32,96 +31,95 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	PC(in=pcRA, inc=notCinstruct2, load=JUMP, reset=reset, out[0..14]=pc);
+
+	PC(in=RA, inc=true, load=BoolJump, reset=reset, out[0..14]=pc);
+	// if instruction[15] is set the instruction is
+	// a C-instruction (compute-instruction),
+	// otherwise an A-instruction(address-instuction)
+	Not(in=instruction[15], out=BoolAinstruct);
+
+	Or(a=BoolLoadRAC, b=BoolAinstruct, out=BoolLoadRA);
+	ARegister(in=newRA, load=BoolLoadRA, out=RA, out[0..14]=addressM);
+
+	DRegister(in=internalOutALUdata, load=BoolLoadRD, out=RD);
+
+	Mux16(a=instruction, b=internalOutALUdata, sel=instruction[15], out=newRA);
+	Mux16(a=RA, b=inM, sel=instruction[12], out=Aluy);
+
+	//======C instruction==========================================
+	// if instruction[15] -> C-instruction (compute instruction)===
+	//=============================================================
+
 	ALU(
-		x=inMEMorRA,
-		y=RD,
-		zx=instruction[9],
+		x=RD,
+		y=Aluy,
+		zx=instruction[11],
 		nx=instruction[10],
-		zy=instruction[11],
+		zy=instruction[9],
 		ny=instruction[8],
 		f=instruction[7],
 		no=instruction[6],
-		out=internalOutALUaddress,
 		out=internalOutALUdata,
 		out=outM,
-		zr=outALUzero1,
-		zr=outALUzeroJMP,
-		zr=tmpzr1,
-		ng=outALUnegative1,
-		ng=outALUnegativeJMP,
-		ng=tmpng1
+		zr=BoolAluZero,
+		ng=BoolAluNegative
 	);
-	Or(a=outALUzero1, b=outALUnegative1, out=smallerEQtmp, out=ALUsmallereqJMP);
-	Not(in=smallerEQtmp, out=positivetmp1, out=positivetmp2, out=outALUpositiveJMP);
-	Or(a=positivetmp1, b=tmpng1, out=outALUnegativepositiveJMP);
-	Or(a=positivetmp2, b=tmpzr1, out=outALUeqpositiveJMP);
-
-
-	Not(in=instruction[15], out=testloadA, out=notCinstruct1, out=notCinstruct2);
-	Or(a=loadRAC, b=notCinstruct1, out=loadRA);
-	Register(in=newRA, load=loadRA, out=aluRA, out=pcRA, out[15]=lastType, out[0..14]=addressM);
-
-	Register(in=internalOutALUdata, load=loadRD, out=RD);
-
-	//======C instruction==================
-	// if instruction[15] -> C-instruction
-	//=======deterimine COMPUTATION========
-
+	//=======implicit ALU output booleans===
+	Or(a=BoolAluZero, b=BoolAluNegative, out=BoolAluNegativeZero);
+	Not(in=BoolAluNegativeZero, out=BoolAluPositive);
+	Or(a=BoolAluPositive, b=BoolAluNegative, out=BoolAluNegativePositive);
+	Or(a=BoolAluPositive, b=BoolAluZero, out=BoolAluZeroPositive);
 	//=======determine WRITE===============
 	DMux8Way(
 		in=instruction[15],
 		sel=instruction[3..5],
-		b=loadRM1,
-		c=loadRD1,
-		d=loadRMRD,
-		e=loadRA1,
-		f=loadRARM1,
-		g=loadRARD1,
-		h=loadRARMRD
+		b=BoolLoadRM1,
+		c=BoolLoadRD1,
+		d=BoolLoadRMRD,
+		e=BoolLoadRA1,
+		f=BoolLoadRARM1,
+		g=BoolLoadRARD1,
+		h=BoolLoadRARMRD
 	);
 	// load A?
-	Or(a=loadRA1, b=loadRARM1, out=loadRA2);
-	Or(a=loadRARD1, b=loadRARMRD, out=loadRARD);
-	Or(a=loadRARD, b=loadRA2, out=loadRAC);
+	Or(a=BoolLoadRA1, b=BoolLoadRARM1, out=BoolLoadRA2);
+	Or(a=BoolLoadRARD1, b=BoolLoadRARMRD, out=BoolLoadRARD);
+	Or(a=BoolLoadRARD, b=BoolLoadRA2, out=BoolLoadRAC);
 	//load RM? (memory)
-	Or(a=loadRMRD, b=loadRM1, out=loadRM2);
-	Or(a=loadRARMRD, b=loadRARM1, out=loadRARM);
-	Or(a=loadRARM, b=loadRM2, out=writeM);
+	Or(a=BoolLoadRMRD, b=BoolLoadRM1, out=BoolLoadRM2);
+	Or(a=BoolLoadRARMRD, b=BoolLoadRARM1, out=BoolLoadRARM);
+	Or(a=BoolLoadRARM, b=BoolLoadRM2, out=writeM);
 	//load RD?
-	Or(a=loadRARD, b=loadRD1, out=loadRD2);
-	Or(a=loadRD2, b=loadRMRD, out=loadRD);
+	Or(a=BoolLoadRARD, b=BoolLoadRD1, out=BoolLoadRD2);
+	Or(a=BoolLoadRD2, b=BoolLoadRMRD, out=BoolLoadRD);
 	//=======determine JUMP================
 	DMux8Way(
-		in=instruction[15],
+		in=instruction[15],//if C-instruction
 		sel=instruction[0..2],
-		b=JGT,
-		c=JEQ,
-		d=JGE,
-		e=JLT,
-		f=JNE,
-		g=JLE,
-		h=JMP1
+		b=BoolJGT,
+		c=BoolJEQ,
+		d=BoolJGE,
+		e=BoolJLT,
+		f=BoolJNE,
+		g=BoolJLE,
+		h=BoolJMP1
 	);
-	And(a=JGT, b=outALUpositiveJMP, out=JMP2);
-	And(a=JEQ, b=outALUzeroJMP, out=JMP3);
-	And(a=JGE, b=outALUpositiveJMP, out=JMP4);
-	And(a=JLT, b=outALUnegativeJMP, out=JMP5);
-	And(a=JLE, b=ALUsmallereqJMP, out=JMP6);
-	And(a=JNE, b=outALUnegativepositiveJMP, out=JMP7);
+	And(a=BoolJGT, b=BoolAluPositive, out=BoolJMP2);
+	And(a=BoolJEQ, b=BoolAluZero, out=BoolJMP3);
+	And(a=BoolJGE, b=BoolAluZeroPositive, out=BoolJMP4);
+	And(a=BoolJLT, b=BoolAluNegative, out=BoolJMP5);
+	And(a=BoolJLE, b=BoolAluNegativeZero, out=BoolJMP6);
+	And(a=BoolJNE, b=BoolAluNegativePositive, out=BoolJMP7);
 	Or8Way(
-		in[0]=JMP1,
-		in[1]=JMP2,
-		in[2]=JMP3,
-		in[3]=JMP4,
-		in[4]=JMP5,
-		in[5]=JMP6,
-		in[6]=JMP7,
+		in[0]=BoolJMP1,
+		in[1]=BoolJMP2,
+		in[2]=BoolJMP3,
+		in[3]=BoolJMP4,
+		in[4]=BoolJMP5,
+		in[5]=BoolJMP6,
+		in[6]=BoolJMP7,
 		in[7]=false,
-		out=JUMP
+		out=BoolJump
 	);
 	//=====================================
-	And(a=instruction[15], b=instruction[12], out=CaInstruction);
-	Mux16(a=instruction, b=internalOutALUaddress, sel=lastType, out=newRA);
-	Mux16(a=aluRA, b=inM, sel=CaInstruction, out=inMEMorRA);
 }

@@ -19,18 +19,27 @@ CHIP Computer {
 
     PARTS:
 	CPU(
-		inM=outMEM,
-		instruction=outROM,
+		//CPU in
+		inM=DataBusDataRead,
+		instruction=DataBusInstruction,
 		reset=reset,
-		outM=newMem,
-		writeM=writeM,
-		addressM=address,
-		pc=pc);
+		//CPU out
+		outM=DataBusDataWrite,
+		writeM=BoolWriteToMem,
+		addressM=AddressBusDataFetch,
+		pc=AddressBusInstructionFetch
+	);
 	Memory(
-		in=newMem,
-		load=writeM,
-		address=address,
-		out=outMEM);
-	ROM32K(address=pc, out=outROM);
-
+		//Memory in
+		in=DataBusDataWrite,
+		load=BoolWriteToMem,
+		address=AddressBusDataFetch,
+		//Memory out
+		out=DataBusDataRead
+	);
+	//read only
+	ROM32K(
+		address=AddressBusInstructionFetch,
+		out=DataBusInstruction
+	);
 }
