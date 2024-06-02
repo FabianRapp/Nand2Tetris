@@ -1,0 +1,15 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-fsanitize=address",
+      "-c",
+      "-o",
+      "main.o",
+      "main.c"
+    ],
+    "directory": "/home/fabi/nand2tetris/nand2tetris/projects/6/assembler",
+    "file": "/home/fabi/nand2tetris/nand2tetris/projects/6/assembler/main.c",
+    "output": "/home/fabi/nand2tetris/nand2tetris/projects/6/assembler/main.o"
+  }
+]

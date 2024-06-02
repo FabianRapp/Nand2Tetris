@@ -94,7 +94,7 @@ CHIP CPU {
 	Or(a=BoolLoadRD2, b=BoolLoadRMRD, out=BoolLoadRD);
 	//=======determine JUMP================
 	DMux8Way(
-		in=instruction[15],//if C-instruction
+		in=instruction[15],
 		sel=instruction[0..2],
 		b=BoolJGT,
 		c=BoolJEQ,
