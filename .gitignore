@@ -1,3 +1,15 @@
 6/assembler/test.asm
 6/pong/Pong.asm
 6/pong/PongL.asm
+6/assembler/.cache/clangd/index/assembler.h.FBD1A69B6CE5CB98.idx
+6/assembler/.cache/clangd/index/main.c.944DF30FB795ACD9.idx
+6/assembler/cmp*
+6/assembler/x
+6/assembler/a
+6/assembler/*.out
+6/assembler/scheduler_fast
+6/assembler/*.o
+6/assembler/gen_input
+6/assembler/assembler
+6/assembler/err
+

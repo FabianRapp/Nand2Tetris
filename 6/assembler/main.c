@@ -1,40 +1,84 @@
 #include "assembler.h"
-
-void	read_file(char *file)
+int	hash(char *str)
 {
-	int fd = open(file, O_RDONLY);
-	printf("%s\n", file);
-	static char buffer[1000];
-	int read_val = read(fd, buffer, 1000);
-	while (read_val > 0)
+	assert(str != NULL);
+	int hash = 0;
+	for (int i = 0; str[i]; i++)
 	{
-		//write(0, buffer, read_val);
-		read_val = read(fd, buffer, 1000);
+		hash += str[i] % HASH_PRIME;
 	}
-	if (read_val < 0)
+	return hash;
+}
+
+void	*read_file(void *data)
+{
+	struct s_reader	*reader = (struct s_reader *)data;
+	return (NULL);
+}
+
+void	init(struct s_scheduler	*data)
+{
+	const pthread_attr_t *thread_flags = {0};//todo
+	void *(*const thread_fn)(void *)= NULL;//todo
+	
+	pthread_create(&data->reader_thread, thread_flags, read_file, &data->reader);
+	for (int i = 0; i < THREAD_COUNT; i++)
 	{
-		printf("%s\n", strerror(errno));
-		exit(errno);
+		pthread_create(data->threads + i, thread_flags, thread_fn,
+				 data->thread_data + i);
 	}
 }
 
+void	wait_threads(struct s_scheduler	*data)
+{
+	pthread_join(data->reader_thread, NULL);
+	printf("file input finished\n");
+	for (int i = 0; i < THREAD_COUNT; i++)
+	{
+		pthread_join(data->threads[i], NULL);
+	}
+	printf("all threads joined\n");
+}
+
+void	scheduler(char *path)
+{
+	struct s_scheduler	data = {0};
+	data.reader.path = path;
+	
+	init(&data);
+	wait_threads(&data);
+	}
 
 int main(int ac, char *av[])
 {
-	t_assem	m_data;
+	char	*path = NULL;
 
 	if (ac == 1)
 	{
-		m_data.path = "test.asm";
+		path = "test.asm";
 		//printf("please provide path to .asm file "
 		// "(./assembler <PATH_TO_FILE>)\n");
 		//exit(1);
 	}
 	else
-		m_data.path = av[1];
-	printf("assembling %s..\n", m_data.path);
+		path = av[1];
+	printf("assembling %s..\n", path);
 	clock_t begin = clock();
-	read_file(m_data.path);
+
+
+	scheduler(path);
+
+
+
+
+
+
+
+
+
+
+
+
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf("%lf seconds\n", time_spent);
