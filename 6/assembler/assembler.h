@@ -13,11 +13,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <xmmintrin.h>
-
+#include <stdatomic.h>
 
 #ifndef READ_CHUNCK_SIZE
-# define READ_CHUNK_SIZE 256000 //typical L2 cache size and multiple of
-								//SIMD register size
+# define READ_CHUNK_SIZE 2560000 //has to be a muliple of 16
 #endif
 
 #ifndef DEFAULT_TABLE_SIZE
@@ -29,11 +28,11 @@
 #endif
 
 #ifndef THREAD_COUNT
-# define THREAD_COUNT 5
+# define THREAD_COUNT 1
 #endif
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE (READ_CHUNK_SIZE * (THREAD_COUNT + 10) * 100)
+# define BUFFER_SIZE (READ_CHUNK_SIZE * (THREAD_COUNT + 10) * 2)
 #endif
 
 struct s_symbole_reference
@@ -69,19 +68,9 @@ typedef struct s_stack
 struct s_ring_buffer
 {
 	char				buffer[BUFFER_SIZE + 2];
-	pthread_mutex_t		head_mutex;
-	unsigned long		tail;
-	pthread_mutex_t		tail_mutex;//
-	unsigned long		head;
-	pthread_mutex_t		state_mutex;
-	bool				locked_head;
-	bool				locked_tail;
-	bool				is_full;
-	bool				is_empty;
-	bool				finished;
-	//pthread_mutex_t		cond_mutex;//protects both tail and head
-	//pthread_cond_t		is_full;
-	//pthread_cond_t		is_empty;
+	atomic_size_t		tail;
+	atomic_size_t		head;
+	atomic_flag			finished;
 };
 
 struct s_nl_scanner
@@ -110,6 +99,8 @@ struct s_scheduler
 {
 	t_stack					line_stack;
 	struct s_ring_buffer	buffer;
+	struct s_nl_scanner		scanner;
+	pthread_t				scanner_thread;
 	pthread_t				threads[THREAD_COUNT];
 	struct s_thread_data	thread_data[THREAD_COUNT];
 	pthread_t				reader_thread;

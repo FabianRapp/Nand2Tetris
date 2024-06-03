@@ -16,14 +16,18 @@ run: all
 	sync; echo 3 > /proc/sys/vm/drop_caches && \
 	./assembler
 
-scheduler_test:
+scheduler_test: clean
 	$(CC) -D_FILE_OFFSET_BITS=64 -g -fsanitize=address base_scheduler_test.c
 
-scheduler_thread:
+scheduler_thread: clean
 	$(CC) -D_FILE_OFFSET_BITS=64 -g -fsanitize=thread base_scheduler_test.c
 
-scheduler_fast:
-	$(CC) -D_FILE_OFFSET_BITS=64 -O3 -march=native base_scheduler_test.c
+scheduler_fast: clean
+	$(CC) -D_FILE_OFFSET_BITS=64 -O3 -march=native base_scheduler_test.c -o scheduler_fast
+
+asm: clean
+	$(CC) -fverbose-asm -Wa,--comment -D_FILE_OFFSET_BITS=64 -O3 -S -march=native base_scheduler_test.c -o scheduler_fast.asm
+
 
 scheduler_prof:
 	gcc -pg -g -D_FILE_OFFSET_BITS=64 -O3 -march=native -o scheduler_fast base_scheduler_test.c
@@ -39,11 +43,11 @@ test_file:
 	./gen_input
 
 clean:
-	@rm compile_commands.json
-	@rm $(OBJ)
+	@rm -f scheduler_fast a.out
+	@rm -f $(OBJ)
 
 fclean:
-	@rm $(OBJ) $(NAME)
+	@rm -f compile_commands.json $(OBJ) $(NAME)
 
 re: fclean all
 

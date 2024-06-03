@@ -7,9 +7,10 @@
 6/assembler/x
 6/assembler/a
 6/assembler/*.out
-6/assembler/scheduler_fast
+6/assembler/scheduler_fast*
 6/assembler/*.o
 6/assembler/gen_input
 6/assembler/assembler
 6/assembler/err
+6/assembler/.cache
 

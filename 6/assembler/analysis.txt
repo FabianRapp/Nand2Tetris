@@ -3,27 +3,13 @@ Flat profile:
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total           
  time   seconds   seconds    calls  Ts/call  Ts/call  name    
- 20.00      0.06     0.06                             compute_thread (base_scheduler_test.c:117 @ 1641)
-  6.67      0.08     0.02                             _init
-  6.67      0.10     0.02                             compute_thread (base_scheduler_test.c:45 @ 1530)
-  6.67      0.12     0.02                             compute_thread (base_scheduler_test.c:99 @ 15d3)
-  6.67      0.14     0.02                             compute_thread (base_scheduler_test.c:109 @ 1613)
-  6.67      0.16     0.02                             compute_wait_data (base_scheduler_test.c:17 @ 14f1)
-  6.67      0.18     0.02                             main (base_scheduler_test.c:263 @ 1280)
-  5.00      0.20     0.01                             compute_thread (base_scheduler_test.c:118 @ 164b)
-  5.00      0.21     0.01                             compute_thread (base_scheduler_test.c:114 @ 164e)
-  3.33      0.22     0.01                             compute_thread (base_scheduler_test.c:43 @ 1523)
-  3.33      0.23     0.01                             compute_thread (base_scheduler_test.c:84 @ 1584)
-  3.33      0.24     0.01                             compute_thread (base_scheduler_test.c:87 @ 1599)
-  3.33      0.25     0.01                             compute_thread (base_scheduler_test.c:97 @ 15b4)
-  3.33      0.26     0.01                             compute_thread (base_scheduler_test.c:97 @ 15cb)
-  3.33      0.27     0.01                             compute_thread (base_scheduler_test.c:105 @ 15ee)
-  3.33      0.28     0.01                             compute_thread (base_scheduler_test.c:118 @ 1655)
-  3.33      0.29     0.01                             compute_thread (base_scheduler_test.c:43 @ 1660)
-  3.33      0.30     0.01                             compute_wait_data (base_scheduler_test.c:23 @ 14e9)
-  0.00      0.30     0.00        1     0.00     0.00  init (base_scheduler_test.c:205 @ 1b00)
-  0.00      0.30     0.00        1     0.00     0.00  scheduler (base_scheduler_test.c:248 @ 1cd0)
-  0.00      0.30     0.00        1     0.00     0.00  wait_threads (base_scheduler_test.c:232 @ 1c30)
+ 33.15      1.76     1.76                             nl_scanner (base_scheduler_test.c:55 @ 148b)
+ 28.63      3.28     1.52                             nl_scanner (base_scheduler_test.c:31 @ 13d5)
+ 17.70      4.22     0.94                             nl_scanner (base_scheduler_test.c:34 @ 13ff)
+ 17.51      5.15     0.93                             nl_scanner (base_scheduler_test.c:33 @ 13f5)
+  3.01      5.31     0.16                             nl_scanner (base_scheduler_test.c:35 @ 140a)
+  0.00      5.31     0.00        1     0.00     0.00  init (base_scheduler_test.c:104 @ 16a0)
+  0.00      5.31     0.00        1     0.00     0.00  wait_threads (base_scheduler_test.c:129 @ 17a0)
 
  %         the percentage of the total running time of the
 time       program used by this function.
@@ -61,23 +47,14 @@ notice and this notice are preserved.
 		     Call graph (explanation follows)
 
 
-granularity: each sample hit covers 4 byte(s) for 3.33% of 0.30 seconds
+granularity: each sample hit covers 4 byte(s) for 0.19% of 5.31 seconds
 
 index % time    self  children    called     name
-                                                 <spontaneous>
-[6]      6.7    0.02    0.00                 main (base_scheduler_test.c:263 @ 1280) [6]
+                0.00    0.00       1/1           scheduler (base_scheduler_test.c:146 @ 122f) [118]
+[6]      0.0    0.00    0.00       1         init (base_scheduler_test.c:104 @ 16a0) [6]
 -----------------------------------------------
-                                                 <spontaneous>
-[7]      6.7    0.02    0.00                 _init [7]
------------------------------------------------
-                0.00    0.00       1/1           _start [231]
-[19]     0.0    0.00    0.00       1         init (base_scheduler_test.c:205 @ 1b00) [19]
------------------------------------------------
-                0.00    0.00       1/1           scheduler (base_scheduler_test.c:250 @ 12ac) [192]
-[20]     0.0    0.00    0.00       1         scheduler (base_scheduler_test.c:248 @ 1cd0) [20]
------------------------------------------------
-                0.00    0.00       1/1           _start [231]
-[21]     0.0    0.00    0.00       1         wait_threads (base_scheduler_test.c:232 @ 1c30) [21]
+                0.00    0.00       1/1           scheduler (base_scheduler_test.c:149 @ 123b) [120]
+[7]      0.0    0.00    0.00       1         wait_threads (base_scheduler_test.c:129 @ 17a0) [7]
 -----------------------------------------------
 
  This table describes the call tree of the program, and was sorted by
@@ -170,10 +147,6 @@ notice and this notice are preserved.
 
 Index by function name
 
-   [7] _init                   [3] compute_thread (base_scheduler_test.c:99 @ 15d3) [17] compute_thread (base_scheduler_test.c:43 @ 1660)
-  [10] compute_thread (base_scheduler_test.c:43 @ 1523) [15] compute_thread (base_scheduler_test.c:105 @ 15ee) [18] compute_wait_data (base_scheduler_test.c:23 @ 14e9)
-   [2] compute_thread (base_scheduler_test.c:45 @ 1530) [4] compute_thread (base_scheduler_test.c:109 @ 1613) [5] compute_wait_data (base_scheduler_test.c:17 @ 14f1)
-  [11] compute_thread (base_scheduler_test.c:84 @ 1584) [1] compute_thread (base_scheduler_test.c:117 @ 1641) [19] init (base_scheduler_test.c:205 @ 1b00)
-  [12] compute_thread (base_scheduler_test.c:87 @ 1599) [8] compute_thread (base_scheduler_test.c:118 @ 164b) [6] main (base_scheduler_test.c:263 @ 1280)
-  [13] compute_thread (base_scheduler_test.c:97 @ 15b4) [9] compute_thread (base_scheduler_test.c:114 @ 164e) [20] scheduler (base_scheduler_test.c:248 @ 1cd0)
-  [14] compute_thread (base_scheduler_test.c:97 @ 15cb) [16] compute_thread (base_scheduler_test.c:118 @ 1655) [21] wait_threads (base_scheduler_test.c:232 @ 1c30)
+   [6] init (base_scheduler_test.c:104 @ 16a0) [3] nl_scanner (base_scheduler_test.c:34 @ 13ff) [7] wait_threads (base_scheduler_test.c:129 @ 17a0)
+   [2] nl_scanner (base_scheduler_test.c:31 @ 13d5) [5] nl_scanner (base_scheduler_test.c:35 @ 140a)
+   [4] nl_scanner (base_scheduler_test.c:33 @ 13f5) [1] nl_scanner (base_scheduler_test.c:55 @ 148b)
