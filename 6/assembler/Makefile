@@ -4,7 +4,7 @@ CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O3 -march=native -pthread -fsanitize=thread
 #-fsanitize=address 
 NAME = assembler
 
-SRC = main.c
+SRC = main.c queue.c
 
 OBJ = $(SRC:%.c=%.o)
 
@@ -17,20 +17,20 @@ run: all
 	./assembler
 
 scheduler_test: clean
-	$(CC) -D_FILE_OFFSET_BITS=64 -g -fsanitize=address base_scheduler_test.c
+	$(CC) -D_FILE_OFFSET_BITS=64 -g -fsanitize=address base_scheduler_test.c queue.c
 
 scheduler_thread: clean
-	$(CC) -D_FILE_OFFSET_BITS=64 -g -fsanitize=thread base_scheduler_test.c
+	$(CC) -D_FILE_OFFSET_BITS=64 -g -fsanitize=thread queue.c base_scheduler_test.c
 
 scheduler_fast: clean
-	$(CC) -D_FILE_OFFSET_BITS=64 -O3 -march=native base_scheduler_test.c -o scheduler_fast
+	$(CC) -D_FILE_OFFSET_BITS=64 -O3 -march=native queue.c base_scheduler_test.c -o scheduler_fast
 
 asm: clean
-	$(CC) -fverbose-asm -Wa,--comment -D_FILE_OFFSET_BITS=64 -O3 -S -march=native base_scheduler_test.c -o scheduler_fast.asm
+	$(CC) -fverbose-asm -Wa,--comment -D_FILE_OFFSET_BITS=64 -O3 -S -march=native base_scheduler_test.c queue.c -o scheduler_fast.asm
 
 
 scheduler_prof:
-	gcc -pg -g -D_FILE_OFFSET_BITS=64 -O3 -march=native -o scheduler_fast base_scheduler_test.c
+	gcc -pg -g -D_FILE_OFFSET_BITS=64 -O3 -march=native -o scheduler_fast base_scheduler_test.c queue.c
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c $< -o $@

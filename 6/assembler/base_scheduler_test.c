@@ -1,4 +1,5 @@
 #include "assembler.h"
+#include "syntax.h"
 
 //this file is only meant to veryfi that the base scheduler consept works
 //it should just copy the input file into cmp
@@ -21,13 +22,15 @@ void	compute_wait_data(struct s_ring_buffer *buffer)
 *	- single line comment logic should be in here
 *	- improve memory access pattern
 */
-void	*nl_scanner(void *thread_data)
+void	*lexer(void *thread_data)
 {
-	__m128i newline = _mm_set1_epi8('\n');
-	struct	s_nl_scanner	*data = (struct s_nl_scanner *)thread_data;
+	__m128i	newline = _mm_set1_epi8('\n');
+	t_lexer	*data = (t_lexer*)thread_data;
 
 	size_t	local_tail = 0;
 	size_t	local_head;
+	size_t	next_line_start = 0;
+	size_t	adjusted_index = 0;
 	while (!atomic_flag_test_and_set(&data->buffer->finished))
 	{
 		atomic_flag_clear(&data->buffer->finished);
@@ -36,9 +39,8 @@ void	*nl_scanner(void *thread_data)
 		{
 			//printf("local_reader_pos: %lu\n", local_read_pos);
 			//todo: handle unalinged data before this loop
-			__m128i vec = _mm_loadu_si128(
-				(__m128i *)(data->buffer->buffer +
-				local_tail % BUFFER_SIZE));
+			__m128i	vec = _mm_loadu_si128(
+				(__m128i *)(data->buffer->buffer + adjusted_index));
 			//compares byte by byte for byte equlity
 			__m128i cmp = _mm_cmpeq_epi8(vec, newline);
 			// returns 1 bit for each byte, if the byte is 0 returns 0, otherwise 1
@@ -46,11 +48,33 @@ void	*nl_scanner(void *thread_data)
 			while (mask != 0)
 			{
 				int offset = __builtin_ctz(mask);//count trailing zeros as the index
-				//todo: implement the stack
-				//push(data->line_stack, local_read_pos + offset);
+				if (offset)
+				{
+					t_token	token;
+					size_t	line_end = adjusted_index + offset;
+					if (line_end > next_line_start)
+					{
+						size_t	line_size = sizeof(char)
+							* (line_end - next_line_start + 1);
+						token.data = malloc(line_size + 1);
+						//printf("line_size: %lu\n, offset: %d\n, line_end: %lu\n next_start:%lu\n", line_size, offset, line_end, next_line_start);
+						assert(token.data);
+						memcpy(token.data,
+							data->buffer->buffer + adjusted_index, line_size);
+						token.data[line_size] = 0;
+						next_line_start = line_end + 1;
+						add_token(data->queue, token);
+						//free(token.data);//todo add to stack instead
+					}
+					else
+					{//todo
+					}
+				}
+
 				mask &= mask - 1; //remove the least significant bit
 			}
 			local_tail += 16;
+			adjusted_index = local_tail % BUFFER_SIZE;
 		}
 		atomic_store(&data->buffer->tail, local_tail);
 	}
@@ -59,10 +83,8 @@ void	*nl_scanner(void *thread_data)
 //TODO: rework
 void	*compute_thread(void *thread_data)
 {
-	struct s_thread_data	*data = (struct s_thread_data *)thread_data;
-	struct s_ring_buffer	*buffer = data->buffer;
-	
-	return (NULL);//deactived right now
+	t_parser	*data = (t_parser *)thread_data;
+	return (NULL);
 }
 
 void	*read_file(void *data)
@@ -105,22 +127,23 @@ void	init(struct s_scheduler *data)
 	const pthread_attr_t *thread_flags = {0};//todo
 	void *(*const thread_fn)(void *)= compute_thread;//todo
 	
-	printf("qq:%s\n", data->reader.path);
+	init_token_queue(&data->token_queue);
+	data->lexer.queue = &data->token_queue;
 	assert(data->reader.path != NULL);
-
-	data->scanner.buffer = &data->buffer;
+	data->lexer.buffer = &data->buffer;
 	atomic_flag_clear(&data->buffer.finished);
 	atomic_store(&data->buffer.head, 0);
 	atomic_store(&data->buffer.tail, 0);
+
 	data->reader.buffer = &data->buffer;
 	pthread_create(&data->reader_thread, thread_flags, read_file, &data->reader);
 	usleep(5000);
-	pthread_create(&data->scanner_thread, thread_flags, nl_scanner, &data->scanner);
+	pthread_create(&data->scanner_thread, thread_flags, lexer, &data->lexer);
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{
-		data->thread_data[i].buffer = &data->buffer;
-		pthread_create(data->threads + i, thread_flags, thread_fn,
-				 data->thread_data + i);
+		data->parser_data[i].queue = &data->token_queue;
+		pthread_create(data->parser_threads + i, thread_flags, thread_fn,
+				 data->parser_data + i);
 	}
 }
 
@@ -132,9 +155,10 @@ void	wait_threads(struct s_scheduler	*data)
 	printf("file \n");
 	for (int i = 0; i < THREAD_COUNT; i++)
 	{
-		pthread_join(data->threads[i], NULL);
+		pthread_join(data->parser_threads[i], NULL);
 	}
 	printf("all threads joined\n");
+	clean_queue(&data->token_queue);
 	//pthread_cond_destroy(&data->buffer.is_full);
 	//pthread_cond_destroy(&data->buffer.is_empty);
 }

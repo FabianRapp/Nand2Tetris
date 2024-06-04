@@ -35,6 +35,8 @@
 # define BUFFER_SIZE (READ_CHUNK_SIZE * (THREAD_COUNT + 10) * 2)
 #endif
 
+typedef struct s_token	t_token;
+
 struct s_symbole_reference
 {
 	struct s_symbole_reference	*next;
@@ -60,11 +62,6 @@ struct s_node
 	struct s_node	*next;
 };
 
-typedef struct s_stack
-{
-    struct node	*top;
-} t_stack;
-
 struct s_ring_buffer
 {
 	char				buffer[BUFFER_SIZE + 2];
@@ -73,20 +70,29 @@ struct s_ring_buffer
 	atomic_flag			finished;
 };
 
-struct s_nl_scanner
+typedef struct s_token
 {
-	t_stack					*line_stack;
-	struct s_ring_buffer	*buffer;
-};
+	char	*data;
+	size_t	index;
+	t_token	*next;
+}	t_token;
 
-struct s_thread_data
+typedef struct s_token_queue
 {
-	int8_t					thread_index;
-	pthread_mutex_t			idel_mutex;
-	bool					idel;
-	struct s_ring_buffer	*buffer;
-};
+	t_token			*head;
+	t_token			*tail;
+	pthread_mutex_t	mutex;
+	pthread_cond_t	not_empty;
+	pthread_cond_t	not_full;//later
+	int				count;
+	int				max_size;//later to move away from the heap
+}	t_token_queue;
 
+typedef struct	s_lexer
+{
+	struct s_ring_buffer	*buffer;
+	t_token_queue			*queue;
+}	t_lexer;
 
 struct s_reader
 {
@@ -95,17 +101,25 @@ struct s_reader
 	struct s_ring_buffer	*buffer;
 };
 
+typedef struct s_parser
+{
+	t_token_queue	*queue;
+}	t_parser;
+
 struct s_scheduler
 {
-	t_stack					line_stack;
+	t_token_queue			token_queue;
 	struct s_ring_buffer	buffer;
-	struct s_nl_scanner		scanner;
+	t_lexer					lexer;
 	pthread_t				scanner_thread;
-	pthread_t				threads[THREAD_COUNT];
-	struct s_thread_data	thread_data[THREAD_COUNT];
+	pthread_t				parser_threads[THREAD_COUNT];
+	t_parser				parser_data[THREAD_COUNT];
 	pthread_t				reader_thread;
 	struct s_reader			reader;
 };
 
-
+void	init_token_queue(t_token_queue *queue);
+t_token	*get_token(t_token_queue *queue);
+void	add_token(t_token_queue *queue, t_token	new_token);
+void	clean_queue(t_token_queue *queue);
 #endif
