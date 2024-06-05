@@ -25,11 +25,14 @@ t_token	*get_token(t_token_queue *queue)
 	{
 		pthread_cond_wait(&queue->not_empty, &queue->mutex);
 	}
-	t_token	*token = queue->head;
-	if (queue->head->next)
-		queue->head = queue->head->next;
+	t_token	*token = queue->tail;
+	if (queue->tail->next)
+		queue->tail = queue->tail->next;
 	else
+	{
+		queue->tail = NULL;
 		queue->head = NULL;
+	}
 	queue->count -= 1;
 	pthread_mutex_unlock(&queue->mutex);
 	return (token);
@@ -50,7 +53,11 @@ void	add_token(t_token_queue *queue, t_token	new_token)
 		queue->head->next = token;
 	queue->head = token;
 	queue->count += 1;
-	pthread_cond_signal(&queue->not_empty);
+	if (!queue->tail)
+	{
+		queue->tail = token;
+		pthread_cond_signal(&queue->not_empty);
+	}
 	pthread_mutex_unlock(&queue->mutex);
 }
 

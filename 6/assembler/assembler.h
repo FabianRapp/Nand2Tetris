@@ -28,7 +28,7 @@
 #endif
 
 #ifndef THREAD_COUNT
-# define THREAD_COUNT 1
+# define THREAD_COUNT 2
 #endif
 
 #ifndef BUFFER_SIZE
@@ -58,49 +58,56 @@ typedef struct s_symbol_table
 
 struct s_node
 {
-	int				index;
-	struct s_node	*next;
+	volatile int			index;
+	volatile struct s_node	*volatile next;
 };
 
 struct s_ring_buffer
 {
-	char				buffer[BUFFER_SIZE + 2];
-	atomic_size_t		tail;
-	atomic_size_t		head;
-	atomic_flag			finished;
+	volatile char			buffer[BUFFER_SIZE + 2];
+	atomic_size_t	tail;
+	atomic_size_t	head;
+	atomic_size_t	finished;
+	//atomic_flag	finished;
 };
 
 typedef struct s_token
 {
-	char	*data;
-	size_t	index;
-	t_token	*next;
+	char				*volatile data;
+	volatile size_t		index;
+	t_token				*volatile next;
 }	t_token;
 
 typedef struct s_token_queue
 {
-	t_token			*head;
-	t_token			*tail;
+	t_token						*volatile head;
+	t_token						*volatile tail;
 	pthread_mutex_t	mutex;
-	pthread_cond_t	not_empty;
-	pthread_cond_t	not_full;//later
-	int				count;
-	int				max_size;//later to move away from the heap
+	pthread_cond_t		not_empty;
+	pthread_cond_t		not_full;//later
+	volatile int				count;
+	int							max_size;//later to move away from the heap
 }	t_token_queue;
 
+//volatiles should not be needed since the structs thems selfs
+//have made the fields volatile
 typedef struct	s_lexer
 {
 	struct s_ring_buffer	*buffer;
 	t_token_queue			*queue;
 }	t_lexer;
 
+//volatiles should not be needed since the structs thems selfs
+//have made the fields volatile
 struct s_reader
 {
-	char					*path;
-	int						fd;
+	char							*path;
+	int								fd;
 	struct s_ring_buffer	*buffer;
 };
 
+//volatiles should not be needed since the structs thems selfs
+//have made the fields volatile
 typedef struct s_parser
 {
 	t_token_queue	*queue;

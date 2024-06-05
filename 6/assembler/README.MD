@@ -120,22 +120,34 @@ computation. Every combination is defined (details below).
 
 TODO (order of priority):
 [x]	Implement a data structure to read data into and the reading thread
-[x]	Implement a thread that read and work on that data inplace without
+[x]	Implement a thread that reads and works on that data inplace without
 data races (later this will turn into the lexer)
 [x]	Set a first rule of what the lexer should return.
-Even this might result in huge changes later on duo to performence, I need a
-starting point to work with.
+	Even this might result in huge changes later on duo to performence,
+	I need a starting point to work with(with the deadline of max 2 weeks,
+	tho I should move on faster).
 [x]	Implement the token struct
-[]	Be able to pass the full data though reader, lexer and parsers and write it
-	back to a file without errors (diff src cmp -> no diff)
-[]	Make a function that takes a token and saves it in binary
 [x]	Implement a basic que for the tokens
-[]	Make lexer append entire file as token to queue
+[x]	lexer loop exit condition needs rework (also currently borken)
+[]	lexer refactor
+[x]	Make lexer append entire file as tokens to queue (bug free)
+[x]	Be able to pass the full data though reader, lexer and parsers and write it
+	back to a file without errors (diff src cmp -> no diff)
+[]	make data pipeline faster
+[]	lexer should be able to identify '//' also as line termination and set the
+	next line after '\n'
+[]	Make a function that takes a token and saves it in binary
+[]	parser loop needs an exit condition
 []	Handle Symbols somehow, first naivly
-[]	there is a race condition where the lexer does never finish
+[]	there is a race condition where the lexer never finishes
 []	init and cleanup functions for ring buffer for readability
 []	seperate init/cleanup functions for reader, lexer, parsers and data
 	structures
+[]	remove dynamic memory usage form queue
+[]	make queue array based
+[]	lockless queue
+[]	consider other options besides joining threads that allow to remove
+	checks within the loops
 
 Data Structures and mechanisms used/planned (if enough time the naive approches
 wil be replaced 1 by 1):
