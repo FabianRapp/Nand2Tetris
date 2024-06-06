@@ -8,7 +8,7 @@
 
 const char	*const syntax[] =
 {
-		"@",
+        "@",
 		"null",
 		"JGT",
 		"JEQ",

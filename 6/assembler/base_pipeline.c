@@ -13,6 +13,10 @@ unsigned long long line_nb = 0;
 unsigned long long read_chunks = 0;
 //=============================================================
 
+void	compute_wait_data(struct s_ring_buffer *buffer)
+{
+}
+
 // appends last token even if is not terminated in the buffer
 void	append_last_token(size_t next_line_start, size_t local_head,
 			t_lexer *data, size_t token_index)
@@ -51,10 +55,14 @@ char	*token_data_extraction(volatile char *buffer, size_t start, size_t offset)
 	size_t	real_start = start % BUFFER_SIZE;
 	if (real_start + offset < BUFFER_SIZE)
 	{
+		//printf("if\n");
+		//write(1, (char *)buffer + real_start, size);
+
 		memcpy(data, (void *)buffer + real_start, size);
 	}
 	else
 	{
+		//printf("else\n");
 		size_t first_size = BUFFER_SIZE - real_start;
 		assert(first_size < BUFFER_SIZE);
 		assert(size - first_size < BUFFER_SIZE);
@@ -92,23 +100,31 @@ void	*lexer(void *thread_data)
 					 //1 for each char, each byte either full 1 or full 0
 			int mask = _mm_movemask_epi8(cmp);//takes the msb. of each byte 
 					 //and stores it in the first 16 bits
+			//printf("mask: %x\n", mask);
 			int offset = 0;
 			while (mask != 0)
+			//if (mask != 0)
 			{
 				offset = __builtin_ctz(mask);//count trailing zeros as the index
+				//printf("offset: %d\n", offset);
 				if (offset + local_tail >= local_head)
 					break ;
 				t_token	token;
 				assert(offset<16);
 				int	real_offset = ((long)local_tail) - ((long)next_line_start) + offset;
+				//printf("basee offset: %d\n", offset);
+				//printf("l tail: %lu, nlstart: %lu\n", local_tail, next_line_start);
+				//printf("real_offset: %d\n", real_offset);
 				assert(real_offset >= 0);
 				token.data = token_data_extraction(data->buffer->buffer,
 					next_line_start, real_offset);
 				token.index = token_index++;
+				//write(out_fd, token.data, strlen(token.data));
 				//printf("%s", token.data);
 				add_token(data->queue, token);
 				next_line_start = local_tail + offset + 1;
 				atomic_store(&data->buffer->tail, next_line_start);
+				//mask >>= offset + 1;
 				mask &= mask - 1; //remove the least significant bit
 			}
 			local_tail += 16;
@@ -128,6 +144,7 @@ void	*parser(void *thread_data)
 {
 	t_parser	*data = (t_parser *)thread_data;
 	
+	//return(NULL);
 	while (1)//todo exit condition
 	{
 		pthread_mutex_lock(&out_mutex);

@@ -1,5 +1,5 @@
 
-cc = CC
+cc = nvcc
 SRC_BASE = test.c
 SRC = tmp
 OBJ = $(SRC:.c=.o)

@@ -118,7 +118,31 @@ computation. Every combination is defined (details below).
 - for now the parsers will output directly based of some sort of queue.
 	if there is time I want to implement a mechanism that reduces write() sys calls
 
-TODO (order of priority):
+CHANGE:
+Make lexer do much more. Later check if lexer can be split to more threads.
+Lexer converts to tokens still. Each token is allready the binay data. when it
+encounters symbols it gives these to another thread to create the symbol table.
+The lexer just saves a reference to the location in the symbol table(a string
+is fine for the first implementation).
+Since I do not resolve the symols in advance I need to be able to hold hold all
+the data at the same time. A linked list of arrays seesm reasonable.
+This array could hold the binary data. The lexer fills C instructions and gives
+A instructions to a diffrent thread to handle (symbols). The array allocation
+would need to be done by the lexer since its the only one with full context of
+the since.
+Reducing the responsiblity of a single lexer thread can be done later.
+Once the lexer and symbol/A-instruction thread joined the main thread the
+binary can be written to the final binary file.
+Taking side step to learn some cuda.
+
+
+Weird stuff to keep in mind for implementation:
+Space has diffrent, tab and newline have diffrent behavior each:
+-newline is the instruction seperator
+-tab is treated like any other charecter
+-space is comply ignores (oven in variables, "ab" == " a b ")
+
+TODO(not done and optionals are generally lower):
 [x]	Implement a data structure to read data into and the reading thread
 [x]	Implement a thread that reads and works on that data inplace without
 data races (later this will turn into the lexer)
@@ -129,25 +153,27 @@ data races (later this will turn into the lexer)
 [x]	Implement the token struct
 [x]	Implement a basic que for the tokens
 [x]	lexer loop exit condition needs rework (also currently borken)
-[]	lexer refactor
+[x]	lexer refactor
 [x]	Make lexer append entire file as tokens to queue (bug free)
-[x]	Be able to pass the full data though reader, lexer and parsers and write it
-	back to a file without errors (diff src cmp -> no diff)
-[]	make data pipeline faster
-[]	lexer should be able to identify '//' also as line termination and set the
-	next line after '\n'
+[x]	Be able to pass the full data though reader, lexer and parsers and write it back to a file without errors (diff src cmp -> no diff)
+[x]	think of someway to handle the insane space rules without messing with the simd lexing
+[]	thread save binary data array list
+[]	thread that takes A-instruction-/symbole-defintion-lines and fills the array list according
+[]	thread that reads the array list and writes it to the out file
+[]	lexer should be able to identify '//' also as line termination and set the next line after '\n'
 []	Make a function that takes a token and saves it in binary
 []	parser loop needs an exit condition
 []	Handle Symbols somehow, first naivly
-[]	there is a race condition where the lexer never finishes
+[x]	there is a race condition where the lexer never finishes
+[]	make data pipeline faster
 []	init and cleanup functions for ring buffer for readability
-[]	seperate init/cleanup functions for reader, lexer, parsers and data
-	structures
+[]	reduce usage of volatile
+[]	seperate init/cleanup functions for reader, lexer, parsers and data structures
+[]	make space removal better
 []	remove dynamic memory usage form queue
 []	make queue array based
 []	lockless queue
-[]	consider other options besides joining threads that allow to remove
-	checks within the loops
+[]	consider other options besides joining threads that allow to remove checks within the loops
 
 Data Structures and mechanisms used/planned (if enough time the naive approches
 wil be replaced 1 by 1):

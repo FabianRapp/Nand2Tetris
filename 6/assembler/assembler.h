@@ -8,12 +8,27 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include <assert.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <xmmintrin.h>
 #include <stdatomic.h>
+
+//intel headers
+#include <x86intrin.h>
+#include <xmmintrin.h>
+#include <emmintrin.h>
+
+// cuda
+#include <cuda_runtime.h>
+
+//#define NDEBUG 1
+#if defined(NDEBUG)
+#define assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
+#else
+#include <assert.h>
+#define assume(cond) assert(cond)
+#endif
+
 
 #ifndef READ_CHUNCK_SIZE
 # define READ_CHUNK_SIZE 2560000 //has to be a muliple of 16
@@ -64,7 +79,7 @@ struct s_node
 
 struct s_ring_buffer
 {
-	volatile char			buffer[BUFFER_SIZE + 2];
+	volatile char	buffer[BUFFER_SIZE + 2];
 	atomic_size_t	tail;
 	atomic_size_t	head;
 	atomic_size_t	finished;
@@ -80,13 +95,13 @@ typedef struct s_token
 
 typedef struct s_token_queue
 {
-	t_token						*volatile head;
-	t_token						*volatile tail;
-	pthread_mutex_t	mutex;
+	t_token				*volatile head;
+	t_token				*volatile tail;
+	pthread_mutex_t		mutex;
 	pthread_cond_t		not_empty;
 	pthread_cond_t		not_full;//later
-	volatile int				count;
-	int							max_size;//later to move away from the heap
+	volatile int		count;
+	int					max_size;//later to move away from the heap
 }	t_token_queue;
 
 //volatiles should not be needed since the structs thems selfs

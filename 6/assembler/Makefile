@@ -8,6 +8,9 @@ SRC = main.c queue.c
 
 OBJ = $(SRC:%.c=%.o)
 
+#-fprofile-generate -o myprog myprog.c
+
+#-fprofile-use -o myprog myprog.c
 
 all: $(OBJ)
 	@$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
