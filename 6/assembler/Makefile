@@ -1,6 +1,6 @@
 
 CC = clang
-CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O3 -march=native -pthread -fsanitize=thread
+CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O0 -pthread -fsanitize=address
 #-fsanitize=address 
 NAME = assembler
 
@@ -14,6 +14,7 @@ OBJ = $(SRC:%.c=%.o)
 
 all: $(OBJ)
 	@$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
+
 
 run: all
 	sync; echo 3 > /proc/sys/vm/drop_caches && \

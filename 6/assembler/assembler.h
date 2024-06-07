@@ -19,7 +19,7 @@
 #include <emmintrin.h>
 
 // cuda
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
 
 //#define NDEBUG 1
 #if defined(NDEBUG)

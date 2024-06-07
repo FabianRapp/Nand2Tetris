@@ -170,23 +170,42 @@ void	*parser(void *thread_data)
 	return (NULL);
 }
 
-int	remove_spaces_cpu(volatile char *buffer, int read_bytes)
+size_t	remove_spaces_cpu(volatile char *buffer, int read_bytes)
 {
-	int	byte_count = 0;
+	size_t	byte_count = 0;
+	static bool	empty_line = true;
+	static bool	is_comment = false;
 	assume(read_bytes > 0 && read_bytes <= READ_CHUNK_SIZE);
-	for (int i = 0; i < read_bytes % 16; i++)
+	for (int i = 0; i < read_bytes; i++)
 	{
-		if (buffer[i] != ' ')
+		if (buffer[i] == '/' || is_comment)
+			is_comment = true;
+		// the provided assembly code is littered with unprintable ascii values
+		// the tools seem to ignore it the same way they ignore spaces
+		// space does not need to be checked since it's ascii is 32 but
+		// I will leave it for clearness
+		// for somereason tabs are interpreted as normal ascii and new lines are
+		// the instruction or comment terminations
+		while (i < read_bytes && buffer[i] != '\n' && (is_comment ||
+			(buffer[i] != '\t'
+			&& (buffer[i] == ' ' | buffer[i] < 33 || buffer[i] > 126))))
 		{
-			buffer[byte_count++] = buffer[i];
+			i++;
 		}
-	}
-	assume((read_bytes - byte_count) % 16 == 0);
-	for (int i = byte_count; i < read_bytes; i++)
-	{
-		if (buffer[i] != ' ')
+		if (i == read_bytes)
+			return (byte_count);
+		if (buffer[i] == '\n' && !empty_line)
+		{
+			buffer[byte_count++] = '\n';
+			is_comment = false;
+			empty_line = true;
+		}
+		else if(buffer[i] == '\n')
+			is_comment = false;
+		else
 		{
 			buffer[byte_count++] = buffer[i];
+			empty_line = false;
 		}
 	}
 	return (byte_count);
@@ -206,13 +225,19 @@ void	*read_file(void *data)
 	{
 		// buffer is full, let lexer empty the buffer for a while and try
 		// again
+		assume(local_head >= local_tail);
 		while (local_head - local_tail > BUFFER_SIZE - READ_CHUNK_SIZE)
 		{
 			usleep(3000);
 			local_tail = atomic_load(&reader->buffer->tail);
 		}
 		volatile unsigned offset = local_head % BUFFER_SIZE;
-		read_return = read(reader->fd, (void *)(reader->buffer->buffer + offset), READ_CHUNK_SIZE);
+		int reading_count = READ_CHUNK_SIZE;
+		if (READ_CHUNK_SIZE > BUFFER_SIZE - offset)
+			reading_count = BUFFER_SIZE - offset;
+		assume(reading_count >= 0);
+		assume(reading_count > 0);
+		read_return = read(reader->fd, (void *)(reader->buffer->buffer + offset), reading_count);
 		if (read_return < 0)
 		{
 			fprintf(stderr, "error reading file\n");
@@ -220,10 +245,10 @@ void	*read_file(void *data)
 		}
 		if (read_return == 0)
 			break ;
-		read_return = remove_spaces_cpu(reader->buffer->buffer + offset, read_return);
-		assume(read_return >= 0);
+		size_t new_bytes = remove_spaces_cpu(reader->buffer->buffer + offset, read_return);
+		//printf("%s", reader->buffer->buffer + offset);
 		++read_chunks;
-		local_head += read_return;
+		local_head += new_bytes;
 		local_tail = atomic_load(&reader->buffer->tail);
 		atomic_store(&reader->buffer->head, local_head);
 	}

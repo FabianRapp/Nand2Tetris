@@ -6,6 +6,7 @@ void	init_token_queue(t_token_queue *queue)
 	queue->tail = NULL;
 	queue->count = 0;
 	pthread_mutex_init(&queue->mutex, 0);
+	printf("init mutex\n");
 	pthread_cond_init(&queue->not_full, 0);
 	pthread_cond_init(&queue->not_empty, 0);
 }
