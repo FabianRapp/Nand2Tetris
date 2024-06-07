@@ -42,8 +42,14 @@ t_token	*get_token(t_token_queue *queue)
 // for now allocates dynamically
 void	add_token(t_token_queue *queue, t_token	new_token)
 {
-	t_token	*token = malloc(sizeof(t_token));
-	assert(token);
+	t_token	*token = NULL;
+	while (!token)
+	{
+		token = malloc(sizeof(t_token));
+		if (!token)
+			usleep(1000);
+	}
+	assume(token);
 	memcpy(token, &new_token, sizeof(t_token));
 	token->next = NULL;
 	// todo

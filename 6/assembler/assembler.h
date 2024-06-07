@@ -1,6 +1,8 @@
 #ifndef ASSEMBLER_H
 # define ASSEMBLER_H
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,6 +14,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdatomic.h>
+#include <stdalign.h>
+#include <endian.h>
 
 //intel headers
 #include <x86intrin.h>
@@ -31,7 +35,11 @@
 
 
 #ifndef READ_CHUNCK_SIZE
-# define READ_CHUNK_SIZE 2560000 //has to be a muliple of 16
+# define READ_CHUNK_SIZE 2097152 //has to be a power of 2 
+//# define READ_CHUNK_SIZE 1048576
+//# define READ_CHUNK_SIZE 524288
+//# define READ_CHUNK_SIZE 4194304
+//# define READ_CHUNK_SIZE 262144
 #endif
 
 #ifndef DEFAULT_TABLE_SIZE
@@ -43,7 +51,7 @@
 #endif
 
 #ifndef THREAD_COUNT
-# define THREAD_COUNT 2
+# define THREAD_COUNT 6
 #endif
 
 #ifndef BUFFER_SIZE
@@ -79,7 +87,7 @@ struct s_node
 
 struct s_ring_buffer
 {
-	volatile char	buffer[BUFFER_SIZE + 2];
+	alignas(READ_CHUNK_SIZE) volatile char	buffer[BUFFER_SIZE + 2];
 	atomic_size_t	tail;
 	atomic_size_t	head;
 	atomic_size_t	finished;
@@ -128,6 +136,57 @@ typedef struct s_parser
 	t_token_queue	*queue;
 }	t_parser;
 
+#if BYTE_ORDER == LITTLE_ENDIAN
+typedef struct s_c_instr
+{
+	uint16_t		jmp			:3;
+	uint16_t		dest		:3;
+	uint16_t		comp		:6;
+	uint16_t		a_type		:1;
+	uint16_t		padding		:2;
+	uint16_t		is_c_inst	:1;
+}	__attribute__((packed)) t_c_instr;
+
+typedef struct s_a_instr
+{
+	uint16_t		address			:15;
+	uint16_t		is_not_a_inst	:1;
+}	__attribute__((packed)) t_a_instr;
+
+#else
+
+typedef struct s_c_instr
+{
+	uint16_t		is_c_inst	:1;
+	uint16_t		padding		:2;
+	uint16_t		a_type		:1;
+	uint16_t		comp		:6;
+	uint16_t		dest		:3;
+	uint16_t		jmp			:3;
+}	__attribute__((packed)) t_c_instr;
+
+typedef struct s_a_instr
+{
+	uint16_t		is_not_a_inst	:1;
+	uint16_t		address			:15;
+}	__attribute__((packed)) t_a_instr;
+
+#endif
+
+// binary data of instruction
+typedef union u_instruction
+{
+	uint16_t		full;
+	t_c_instr		c;
+	t_a_instr		a;
+}	__attribute__((packed)) t_instruction;
+
+typedef struct s_linked_list_arr
+{
+	alignas(16) t_instruction				arr[2000];
+	struct s_linked_list_arr	*next;
+}	t_linked_list_arr;
+
 struct s_scheduler
 {
 	t_token_queue			token_queue;
@@ -140,8 +199,16 @@ struct s_scheduler
 	struct s_reader			reader;
 };
 
+// signle_instruction_handeling.c
+void	handle_instruction(char *single_instruction_str_data);
+
+//queue.c
 void	init_token_queue(t_token_queue *queue);
 t_token	*get_token(t_token_queue *queue);
 void	add_token(t_token_queue *queue, t_token	new_token);
 void	clean_queue(t_token_queue *queue);
+
+//debug_utils.c
+void	print_instruction(char *str, t_instruction instruction);
+
 #endif

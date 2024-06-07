@@ -6,6 +6,7 @@ int				out_fd;
 pthread_mutex_t	out_mutex;
 unsigned long long line_nb = 0;
 unsigned long long read_chunks = 0;
+
 //=============================================================
 
 // todo: this function should not exists and token_data_extraction should be used
@@ -20,6 +21,11 @@ void	append_last_token(size_t next_line_start, size_t local_head,
 		token.index = token_index++;
 		size_t	len = local_head - next_line_start;
 		token.data = malloc(sizeof(char) * (1 + len));
+		while (!(token.data))
+		{
+			usleep(1000);
+			token.data = malloc(sizeof(char) * (1 + len));
+		}
 		token.data[len] = 0;
 		// what ever just execued max once
 		for (int i = 0; i + next_line_start < local_head; i++)
@@ -27,8 +33,6 @@ void	append_last_token(size_t next_line_start, size_t local_head,
 			token.data[i] =
 				data->buffer->buffer[(i + next_line_start) % BUFFER_SIZE];
 		}
-		//printf("left over:\n");
-		//printf("%s", token.data);
 		add_token(data->queue, token);
 	}
 }
@@ -41,9 +45,14 @@ void	append_last_token(size_t next_line_start, size_t local_head,
 char	*token_data_extraction(volatile char *buffer, size_t start, size_t offset)
 {
 	size_t	size = offset + 1;
-	assert(size < BUFFER_SIZE);
+	assume(size < BUFFER_SIZE);
 	char *data = malloc(sizeof(char) * (size + 1));
-	assert(data != NULL);
+	while (!data)
+	{
+		usleep(1000);
+		data = malloc(sizeof(char) * (size + 1));
+	}
+	assume(data != NULL);
 	size_t	real_start = start % BUFFER_SIZE;
 	if (real_start + offset < BUFFER_SIZE)
 	{
@@ -56,8 +65,8 @@ char	*token_data_extraction(volatile char *buffer, size_t start, size_t offset)
 	{
 		//printf("else\n");
 		size_t first_size = BUFFER_SIZE - real_start;
-		assert(first_size < BUFFER_SIZE);
-		assert(size - first_size < BUFFER_SIZE);
+		assume(first_size < BUFFER_SIZE);
+		assume(size - first_size < BUFFER_SIZE);
 		memcpy(data, (void *)buffer + real_start, first_size);
 		memcpy(data + first_size, (void *)buffer, size - first_size);
 	}
@@ -77,18 +86,15 @@ inline int8_t	first_0xff_other_0x00(__m128i	bytes)
 void	*lexer(void *thread_data)
 {
 	__m128i	newline = _mm_set1_epi8('\n');
-	__m128i	comment = _mm_set1_epi8('/');
 	__m128i	variable = _mm_set1_epi8('@');
 	__m128i	line_var_start = _mm_set1_epi8('(');
 	__m128i	line_var_end = _mm_set1_epi8(')');
-	__m128i	space = _mm_set1_epi8(' ');
 	t_lexer	*data = (t_lexer*)thread_data;
 	size_t	token_index = 0;
 	size_t	local_tail = 0;
 	size_t	local_head = 1;
 	size_t	next_line_start = 0;
 	size_t	adjusted_index = 0;
-	bool	is_comment = false;
 	while (local_tail < local_head || !atomic_load(&data->buffer->finished))
 	{
 		local_head = atomic_load(&data->buffer->head);
@@ -101,16 +107,6 @@ void	*lexer(void *thread_data)
 					 //1 for each char, each byte either full 1 or full 0
 			int nl_mask = _mm_movemask_epi8(nl_cmp);//takes the msb. of each byte 
 					 //and stores it in the first 16 bits
-			if (!is_comment)
-			{
-			}
-
-			//__m128i comment_cmp = _mm_cmpeq_epi8(vec, comment);
-			//comment_cmp = _mm_slli_si128(comment_cmp, 1);
-			//comment_cmp = _mm_and_si128(comment_cmp, comment_cmp);
-			//int8_t	comment_start = first_0xff_other_0x00(comment_cmp);
-
-
 			int offset = 0;
 			int i = 0;
 			while (nl_mask != 0)
@@ -121,20 +117,15 @@ void	*lexer(void *thread_data)
 				if (offset + local_tail >= local_head)
 					break ;
 				t_token	token;
-				assert(offset<16);
+				assume(offset<16);
 				int	real_offset = ((long)local_tail) - ((long)next_line_start) + offset;
 				//skip lines that can only be a comment or nothing (valid syntax is expected)
 				if (real_offset > 0)
 				{
-					//printf("basee offset: %d\n", offset);
-					//printf("l tail: %lu, nlstart: %lu\n", local_tail, next_line_start);
-					//printf("real_offset: %d\n", real_offset);
-					assert(real_offset >= 0);
+					assume(real_offset >= 0);
 					token.data = token_data_extraction(data->buffer->buffer,
 						next_line_start, real_offset);
 					token.index = token_index++;
-					//write(out_fd, token.data, strlen(token.data));
-					//printf("%s", token.data);
 					add_token(data->queue, token);
 				}
 				next_line_start = local_tail + offset + 1;
@@ -211,13 +202,19 @@ size_t	remove_spaces_cpu(volatile char *buffer, int read_bytes)
 	return (byte_count);
 }
 
+// TODO
+// the lexing done in here should not be done by this thread
+// move it to the lexer so the read can be done in efficient steps
 void	*read_file(void *data)
 {
 	struct s_reader			*reader = (struct s_reader *)data;
 
-	assert(reader->path != NULL);
+	assume(reader->path != NULL);
 	reader->fd = open(reader->path, O_RDONLY);
-	assert(reader->fd > 0);
+	int unaligned_read_flags = fcntl(reader->fd, F_GETFL);
+	//fcntl(reader->fd, F_SETFL, unaligned_read_flags | O_DIRECT);
+	int aligned_read_flags = fcntl(reader->fd, F_GETFL);
+	assume(reader->fd > 0);
 	volatile int read_return = 1;
 	volatile size_t	local_head = 0;
 	volatile size_t	local_tail = 0;
@@ -234,11 +231,19 @@ void	*read_file(void *data)
 		volatile unsigned offset = local_head % BUFFER_SIZE;
 		int reading_count = READ_CHUNK_SIZE;
 		if (READ_CHUNK_SIZE > BUFFER_SIZE - offset)
+		{
 			reading_count = BUFFER_SIZE - offset;
-		assume(reading_count >= 0);
-		assume(reading_count > 0);
-		read_return = read(reader->fd, (void *)(reader->buffer->buffer + offset), reading_count);
-		if (read_return < 0)
+			assume(reading_count > 0 && reading_count < READ_CHUNK_SIZE);
+			read_return = read(reader->fd, (void *)
+					(reader->buffer->buffer + offset), reading_count);
+		}
+		else
+		{
+			//assume(offset % READ_CHUNK_SIZE == 0);
+			read_return = read(reader->fd, (void *)
+					  (reader->buffer->buffer + offset), READ_CHUNK_SIZE);
+		}
+			if (read_return < 0)
 		{
 			fprintf(stderr, "error reading file\n");
 			exit(1);
@@ -255,12 +260,13 @@ void	*read_file(void *data)
 	if (read_return !=0)
 	{
 		printf("%s\n", strerror(errno));
-		assert(read_return != 0);
+		assume(read_return != 0);
 	}
 	printf("reading sending finsihed sig\n");
 	atomic_store(&reader->buffer->finished, 1);
 	//atomic_flag_test_and_set(&reader->buffer->finished);
 	printf("exiting read with local_head: %lu\n", local_head);
+	close(reader->fd);
 	return (NULL);
 }
 
@@ -272,7 +278,7 @@ void	init(struct s_scheduler *data)
 	
 	init_token_queue(&data->token_queue);
 	data->lexer.queue = &data->token_queue;
-	assert(data->reader.path != NULL);
+	assume(data->reader.path != NULL);
 	data->lexer.buffer = &data->buffer;
 	//atomic_flag_clear(&data->buffer.finished);
 	atomic_store(&data->buffer.finished, 0);
@@ -341,6 +347,7 @@ int main(int ac, char *av[])
 	else
 		path = av[1];
 	scheduler(path);
+	close(out_fd);
 	return (0);
 }
 

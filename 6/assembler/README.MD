@@ -142,7 +142,7 @@ Space has diffrent, tab and newline have diffrent behavior each:
 -tab is treated like any other charecter
 -space is comply ignores (oven in variables, "ab" == " a b ")
 
-TODO(not done and optionals are generally lower):
+TODO(X is done, O is not needed anymore, not done and optionals are generally lower):
 [x]	Implement a data structure to read data into and the reading thread
 [x]	Implement a thread that reads and works on that data inplace without
 data races (later this will turn into the lexer)
@@ -157,10 +157,12 @@ data races (later this will turn into the lexer)
 [x]	Make lexer append entire file as tokens to queue (bug free)
 [x]	Be able to pass the full data though reader, lexer and parsers and write it back to a file without errors (diff src cmp -> no diff)
 [x]	think of someway to handle the insane space rules without messing with the simd lexing
+[x]	instruction union type
+[]	switch from data in form of lines to data in form of strings
 []	thread save binary data array list
 []	thread that takes A-instruction-/symbole-defintion-lines and fills the array list according
 []	thread that reads the array list and writes it to the out file
-[]	lexer should be able to identify '//' also as line termination and set the next line after '\n'
+[O]	lexer should be able to identify '//' also as line termination and set the next line after '\n'
 []	Make a function that takes a token and saves it in binary
 []	parser loop needs an exit condition
 []	Handle Symbols somehow, first naivly
@@ -169,7 +171,7 @@ data races (later this will turn into the lexer)
 []	init and cleanup functions for ring buffer for readability
 []	reduce usage of volatile
 []	seperate init/cleanup functions for reader, lexer, parsers and data structures
-[]	make space removal better
+[x](slow as is)	make space removal better
 []	remove dynamic memory usage form queue
 []	make queue array based
 []	lockless queue
