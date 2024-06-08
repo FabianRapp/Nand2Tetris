@@ -5,7 +5,7 @@ CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O0 -pthread
 #-fsanitize=address 
 NAME = assembler
 
-SRC = main.c queue.c debug_utils.c single_instruction_handelinng.c
+SRC = main.c queue.c debug_utils.c signle_instruction_handeling.c
 
 OBJ = $(SRC:%.c=%.o)
 

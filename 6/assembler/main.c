@@ -37,6 +37,7 @@ void	append_last_token(size_t next_line_start, size_t local_head,
 	}
 }
 
+
 // exctracts string data from the ring buffer from the absolute index start
 // until start + offset
 // the real index of the undelying array is index % BUFFER_SIZE
@@ -83,9 +84,10 @@ inline int8_t	first_0xff_other_0x00(__m128i	bytes)
 	return (__builtin_clz(mask));//clz counts leading zeros
 }
 
+// todo: change naming and logic to str based system (old was line based)
 void	*lexer(void *thread_data)
 {
-	__m128i	newline = _mm_set1_epi8('\n');
+	__m128i	newline = _mm_set1_epi8(0);
 	__m128i	variable = _mm_set1_epi8('@');
 	__m128i	line_var_start = _mm_set1_epi8('(');
 	__m128i	line_var_end = _mm_set1_epi8(')');
@@ -187,7 +189,7 @@ size_t	remove_spaces_cpu(volatile char *buffer, int read_bytes)
 			return (byte_count);
 		if (buffer[i] == '\n' && !empty_line)
 		{
-			buffer[byte_count++] = '\n';
+			buffer[byte_count++] = 0;
 			is_comment = false;
 			empty_line = true;
 		}

@@ -25,6 +25,8 @@
 // cuda
 //#include <cuda_runtime.h>
 
+#define unreachable __builtin_unreachable
+
 //#define NDEBUG 1
 #if defined(NDEBUG)
 #define assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
