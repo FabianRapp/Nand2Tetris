@@ -80,6 +80,48 @@ All in all syntax:
 
 */
 
+static	__attribute__((always_inline)) bool	is_charset(char c)
+{
+	switch(c)
+	{
+		case '0': return (true);
+		case '1': return (true);
+		case '-': return (true);
+		case 'D': return (true);
+		case 'A': return (true);
+		case '!': return (true);
+		case '+': return (true);
+		case '&': return (true);
+		case '|': return (true);
+		case 'M': return (true);
+		case '=': return (true);
+		case ';': return (true);
+		case 'J': return (true);
+		case 'G': return (true);
+		case 'T': return (true);
+		case 'E': return (true);
+		case 'Q': return (true);
+		case 'L': return (true);
+		case 'N': return (true);
+		case 'P': return (true);
+		default:
+			printf("error, got '%c'\n", c);
+			return (false);
+	}
+}
+
+static	__attribute__((always_inline)) size_t	assume_strlen(char *s)
+{
+	size_t	len = 0;
+	while (s[len])
+	{
+		assume(is_charset(s[len]));
+		len++;
+	}
+	assume(len >= 1 && len <= 11);
+	return (len);
+}
+
 // this assumes that the given char is only on the exact index given
 static __attribute__((always_inline)) void	c_only_pos(char *s, char c,
 	size_t index, size_t len)
@@ -95,10 +137,9 @@ static __attribute__((always_inline)) void	c_only_pos(char *s, char c,
 }
 
 // this assumes that the given char is not in the string
-static __attribute__((always_inline)) void	no_c(char *s, char c,
-	size_t len)
+static __attribute__((always_inline)) void	no_c(char *s, char c)
 {
-	for (int i = 0; i < len; i++)
+	for (int i = 0; s[i]; i++)
 	{
 		assume(s[i] != c);
 	}
@@ -127,8 +168,10 @@ static inline bool	valid_jmp(char *j)
 	{
 		return false;
 	}
-	if (*j+4)
+	if (j[4])
+	{
 		return (false);
+	}
 	return (true);
 }
 
@@ -153,15 +196,75 @@ static inline bool	is_first_comp_char(char c)
 	return (false);
 }
 
-// todo finish this
-static inline bool	is_comp(char *s)
+// pointer points to start of copute part
+static __attribute__((always_inline)) bool	is_comp(char *s)
 {
-	//if (*s == '0' || *s == '1' || *s
-	if (!is_first_comp_char(*s))
-		return (false);
+	if (
+		*s == '0' || *s == '1' || *s == '-' || *s == '!' ||
+		s[1] == ';' || s[1] == '1' || s[1] == '+' || s[1] == '&' || s[1] == '|'
+		|| !s[1] || s[1] == '-'
+	)
+	{
+		assume(s[0] != 'J');
+		assume(s[0] != 'G');
+		assume(s[0] != 'T');
+		assume(s[0] != 'E');
+		assume(s[0] != 'Q');
+		assume(s[0] != 'L');
+		assume(s[0] != 'N');
+		assume(s[0] != 'P');
+		assume(s[0] != ';');
+		no_c(s, '=');
+		return (true);
+	}
+	printf("not comp: %s\n", s);
+	return (false);
+}
 
+static __attribute__((always_inline)) void	base(char *s, int len)
+{
+	assume(len > 0 && len <= 11);
+	assume(s[len] == 0);
+}
 
-	return (true);
+static __attribute__((always_inline)) void	small_len(char *s, int len)
+{
+	if (len < 5)//no possible jump
+	{
+		no_c(s, 'J');
+		no_c(s, 'G');
+		no_c(s, 'T');
+		no_c(s, 'E');
+		no_c(s, 'Q');
+		no_c(s, 'L');
+		no_c(s, 'N');
+		no_c(s, 'P');
+	}
+	if (*s != 'M' && *s != 'D' && *s != 'A')
+		no_c(s, '=');
+	if (len == 1)
+	{
+		no_c(s, ';');
+		char	c = *s;
+		assume(c=='0' || c=='1' || c=='D' || c=='A' || c=='M');
+	}
+	if (len == 1 || len == 2)
+	{
+		no_c(s, '=');
+	}
+}
+
+static __attribute__((always_inline)) void	eq_len(char *s, int len)
+{
+	for (int i = 0; i < len; i++)
+	{
+		if (s[i] == '=')
+		{
+			assume(len>=3);
+			return ;
+		}
+	}
+	assume(len<=7);
 }
 
 // should heavily rely on compile time
@@ -173,12 +276,10 @@ static inline t_instruction	fill_c_instruction(char *s)
 {
 	assume(s && *s);
 	t_instruction	inst = {.c={.is_c_inst=1, .padding=3, .a_type=0,.comp=0,.dest=0,.jmp=0}};
-	size_t len = strnlen(s, 11);
-
-	assume(len > 0 && len <= 11);
-	assume(s[len] == 0);
-	//instruction can only start with these if its only a signle char
-	assume(!(len == 1 && *s != '0' && *s != '1'&& *s != 'D' && *s != 'A' && *s != 'M'));
+	size_t len = assume_strlen(s);
+	base(s, len);
+	small_len(s, len);
+	eq_len(s, len);
 	//explains what valid semicolns and what valid jumps are
 	for (int i = 0; i<=len; i++)
 	{
@@ -189,6 +290,7 @@ static inline t_instruction	fill_c_instruction(char *s)
 			c_only_pos(s, ';', i, len);
 			c_only_pos(s, 'J', i+1, len);
 			assume(i < len - 3);//there has to be space left for the jmp symbole
+			assume(i > 0);
 			assume(valid_jmp(s + i));
 			assume (len - i == 4);
 			if (has_dest(s, len))
@@ -196,13 +298,41 @@ static inline t_instruction	fill_c_instruction(char *s)
 				//todo: assume the '=' position and reduce the len
 				assume(len >= 7);
 			}
+			//=========fill JMP============
+			// frst direct matches
+			if (s[i+2] == 'E')
+			{
+				inst.c.jmp = 0b010;
+				c_only_pos(s, 'Q', i+3, len);
+				no_c(s, 'G');
+				no_c(s, 'T');
+				no_c(s, 'L');
+				no_c(s, 'N');
+				no_c(s, 'P');
+			}
+			else
+			{
+			}
+			if (s[i+3] == 'P')
+			{
+				inst.c.jmp = 0b111;
+				assume(s[i+2] == 'M');
+				c_only_pos(s, 'P', i+3, len);
+			}
+			else
+			{
+				no_c(s, 'P');
+			}
+			//todo JGT, JGE, JLT, JNE, JLE
+			//=============================
+
 		}
 		// else if there is no jump
 		else if (s[i] == ';' || (!s[i] && s[i-1] != ';' && (len < 4 || s[i-4] != ';')))
 		{
 			if (!s[i])
 			{
-				no_c(s, ';', len);
+				no_c(s, ';');
 				assume(len == i);
 				if (has_dest(s, len))
 					assume(len>=1 && len <=7);
@@ -219,14 +349,14 @@ static inline t_instruction	fill_c_instruction(char *s)
 				else
 					assume(len<=4&&len>=2);
 			}
-			no_c(s, 'J', len);
-			no_c(s, 'G', len);
-			no_c(s, 'T', len);
-			no_c(s, 'E', len);
-			no_c(s, 'Q', len);
-			no_c(s, 'L', len);
-			no_c(s, 'N', len);
-			no_c(s, 'P', len);
+			no_c(s, 'J');
+			no_c(s, 'G');
+			no_c(s, 'T');
+			no_c(s, 'E');
+			no_c(s, 'Q');
+			no_c(s, 'L');
+			no_c(s, 'N');
+			no_c(s, 'P');
 			assume(i >= 1);
 			inst.c.jmp = 0;
 		}
@@ -245,7 +375,7 @@ static inline t_instruction	fill_c_instruction(char *s)
 			assume(is_comp(s+3));
 			assume(len<=10 && len >= 4);
 		}
-		else if (*(s+3) == '=')//dest is 'ADM='
+		else if (s[3] == '=')//dest is 'ADM='
 		{
 			c_only_pos(s, '=', 3, len);
 			assume(len>=5);
@@ -298,7 +428,7 @@ static inline t_instruction	fill_c_instruction(char *s)
 	}
 	else
 	{
-		no_c(s, '=', len);
+		no_c(s, '=');
 		assume(len > 0 && len <= 7);
 		assume((*s == ';' && len == 4 && valid_jmp(s))
 		 || (is_first_comp_char(*s)));//i think there can be more here
@@ -310,16 +440,18 @@ static inline t_instruction	fill_c_instruction(char *s)
 	return (inst);
 }
 
-static void	handle_c_instruction(char *str_data)
+static t_instruction	handle_c_instruction(char *str_data)
 {
 	
 	t_instruction	inst = fill_c_instruction(str_data);
 	int				i = 0;
-	
+	return (inst);
 }
 
-static void	handle_a_instruction(char *str_data)
+static t_instruction	handle_a_instruction(char *str_data)
 {
+	t_instruction	inst = {0};
+	return (inst);
 }
 
 void	handle_instruction(char *single_instruction_str_data)
@@ -330,4 +462,11 @@ void	handle_instruction(char *single_instruction_str_data)
 		handle_c_instruction(single_instruction_str_data);
 }
 
+t_instruction	test_handle_instruction(char *single_instruction_str_data)
+{
+	if (*single_instruction_str_data == '@' || *single_instruction_str_data == '(')
+		return(handle_a_instruction(single_instruction_str_data));
+	else
+		return (handle_c_instruction(single_instruction_str_data));
+}
 

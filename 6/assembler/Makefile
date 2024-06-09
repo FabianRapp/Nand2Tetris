@@ -5,8 +5,12 @@ CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O0 -pthread
 #-fsanitize=address 
 NAME = assembler
 
-SRC = main.c queue.c debug_utils.c signle_instruction_handeling.c
+BASE_SRC = queue.c debug_utils.c \
+			c_instruction_handler.c\
+			a_instruction_handler.c
 
+SRC = $(BASE_SRC) main.c
+BASE_OBJS = $(BASE_SRC:%.c=%.o)
 OBJ = $(SRC:%.c=%.o)
 
 #-fprofile-generate -o myprog myprog.c
@@ -16,10 +20,13 @@ OBJ = $(SRC:%.c=%.o)
 all: $(OBJ)
 	@$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
-
 run: all
 	sync; echo 3 > /proc/sys/vm/drop_caches && \
 	./assembler
+
+test_instruction: $(BASE_OBJS)
+	$(CC) $(CFLAGS) $(BASE_OBJS) test_instruction.c -o instruction_test
+
 
 prof:
 	gcc -pg -g -D_FILE_OFFSET_BITS=64 -O3 -march=native $(SRC) -o $(NAME) -DNDEBUG=1

@@ -203,6 +203,8 @@ struct s_scheduler
 
 // signle_instruction_handeling.c
 void	handle_instruction(char *single_instruction_str_data);
+t_instruction	test_handle_instruction(char *single_instruction_str_data);
+
 
 //queue.c
 void	init_token_queue(t_token_queue *queue);
