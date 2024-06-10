@@ -24,7 +24,8 @@ char	*get_rdm_dest(int *i)
 		return ("AD=");
 	if (*i == 7)
 		return ("ADM=");
-	assert(0);
+	printf("error get_rdm_dest\n");
+	exit(1);
 	return (0);
 }
 
@@ -63,7 +64,8 @@ char *get_rdm_comp(int *i) {
         case 26: return "D&M";
         case 27: return "D|M";
         default:
-            assert(0);
+			printf("error get_rdm_comp\n");
+			exit(1);
             return NULL;
     }
 }
@@ -84,7 +86,8 @@ char *get_rdm_jmp(int *i)
         case 6: return "JLE";
         case 7: return "JMP";
         default:
-            assert(0);
+			printf("error get_rdm_jmp\n");
+			exit(1);
             return NULL;
     }
 }
@@ -137,40 +140,36 @@ t_test_instruction_pair	get_rdm_c_instruction_test(void)
 	test.expect.c.padding = 3;
 	test.expect.c.jmp = jmp_index;
 	test.expect.c.dest = dest_index;
-	if (comp_index >= 18)
-		test.expect.c.a_type = 1;
-	else
-		test.expect.c.a_type = 0;
 	switch (comp_index)
 	{
-		case 0: test.expect.c.comp = 0b101010;
-		case 1: test.expect.c.comp = 0b111111;
-		case 2: test.expect.c.comp = 0b111010;
-		case 3: test.expect.c.comp = 0b001100;
-		case 4: test.expect.c.comp = 0b110000;
-		case 5: test.expect.c.comp = 0b001101;
-		case 6: test.expect.c.comp = 0b110001;
-		case 7: test.expect.c.comp = 0b001111;
-		case 8: test.expect.c.comp = 0b110011;
-		case 9: test.expect.c.comp = 0b011111;
-		case 10: test.expect.c.comp = 0b110111;
-		case 11: test.expect.c.comp = 0b001110;
-		case 12: test.expect.c.comp = 0b110010;
-		case 13: test.expect.c.comp = 0b000010;
-		case 14: test.expect.c.comp = 0b010011;
-		case 15: test.expect.c.comp = 0b000111;
-		case 16: test.expect.c.comp = 0b000000;
-		case 17: test.expect.c.comp = 0b010101;
-		case 18: test.expect.c.comp = 0b110000;
-		case 19: test.expect.c.comp = 0b110001;
-		case 20: test.expect.c.comp = 0b110011;
-		case 21: test.expect.c.comp = 0b110111;
-		case 22: test.expect.c.comp = 0b110010;
-		case 23: test.expect.c.comp = 0b000010;
-		case 24: test.expect.c.comp = 0b010011;
-		case 25: test.expect.c.comp = 0b000111;
-		case 26: test.expect.c.comp = 0b000000;
-		case 27: test.expect.c.comp = 0b010101;
+		case 0: test.expect.c.comp = 0x2A; break;
+		case 1: test.expect.c.comp = 0x3f; break;
+		case 2: test.expect.c.comp = 0x3a; break;
+		case 3: test.expect.c.comp = 0xc;  break;
+		case 4: test.expect.c.comp = 0x30; break;
+		case 5: test.expect.c.comp = 0xd;  break;
+		case 6: test.expect.c.comp = 49;   break;
+		case 7: test.expect.c.comp = 0xf;  break;
+		case 8: test.expect.c.comp = 0x33; break;
+		case 9: test.expect.c.comp = 0x1f; break;
+		case 10: test.expect.c.comp = 0x37;break;
+		case 11: test.expect.c.comp = 0xe; break;
+		case 12: test.expect.c.comp = 0x32;break;
+		case 13: test.expect.c.comp = 0x2; break;
+		case 14: test.expect.c.comp = 0x13;break;
+		case 15: test.expect.c.comp = 0x7; break;
+		case 16: test.expect.c.comp = 0x0; break;
+		case 17: test.expect.c.comp = 0x15;break;
+		case 18: test.expect.c.comp = 0x70;break;
+		case 19: test.expect.c.comp = 0x71;break;
+		case 20: test.expect.c.comp = 0x73;break;
+		case 21: test.expect.c.comp = 0x77;break;
+		case 22: test.expect.c.comp = 0x72;break;
+		case 23: test.expect.c.comp = 0x42;break;
+		case 24: test.expect.c.comp = 0x53;break;
+		case 25: test.expect.c.comp = 0x47;break;
+		case 26: test.expect.c.comp = 0x40;break;
+		case 27: test.expect.c.comp = 0x55;break;
 	}
 	return (test);
 }
@@ -191,21 +190,33 @@ bool	test_c_inst(char *str)
 			printf("--------------------------\n");
 		}
 	}
-	for (int i =0; i < 1000000; i++)
+	for (int i =0; i < 10000000; i++)
 	{
 		test = get_rdm_c_instruction_test();
-		printf("%s\n", test.input);
+		//printf("%s\n", test.input);
 
 		test.result = test_handle_instruction(test.input);
 		if (test.expect.full != test.result.full)
 		{
-			print_instruction("expected", test.expect);
-			print_instruction("acutal", test.result);
+			print_instruction("expected:\t", test.expect);
+			print_instruction("acutal:\t\t", test.result);
 			printf("--------------------------\n");
 		}
-		assert(test.expect.c.dest == test.result.c.dest);
-		//assert(test.expect.c.comp == test.result.c.comp);
-		//assert(test.expect.c.jmp == test.result.c.jmp);
+		if (test.expect.c.dest != test.result.c.dest)
+		{
+			printf("dest missmatch\n");
+			exit(1);
+		}
+		if(test.expect.c.comp != test.result.c.comp)
+		{
+			printf("comp missmatch\n");
+			exit(1);
+		}
+		if(test.expect.c.jmp != test.result.c.jmp)
+		{
+			printf("jmp missmatch\n");
+			exit(1);
+		}
 		free(test.input);
 	}
 
@@ -226,7 +237,7 @@ void	print_instruction_type_sizes(void)
 	print_instruction("set first bit1", inst);
 
 	inst.c.comp = 0x3F;
-	print_instruction("set comp all 1", inst);
+	print_instruction("set comp all 0+6*1", inst);
 
 	inst.a.address = 0b101010101000000;
 	print_instruction("inst.a_instr.address=0b101010101000000", inst);
@@ -237,10 +248,14 @@ void	print_instruction_type_sizes(void)
 int main(int ac, char *av[])
 {
 	srand(time(NULL));
+	clock_t begin = clock();
 	if (ac > 1)
 		test_c_inst(av[1]);
 	else
 		test_c_inst(0);
+	clock_t end = clock();
+	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf("%.6lf seconds\n", time_spent);
 	return (0);
 }
 

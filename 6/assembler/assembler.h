@@ -44,8 +44,8 @@
 //# define READ_CHUNK_SIZE 262144
 #endif
 
-#ifndef DEFAULT_TABLE_SIZE
-# define DEFAULT_TABLE_SIZE 1000
+#ifndef TABLE_SIZE
+# define TABLE_SIZE 1000
 #endif
 
 #ifndef HASH_PRIME
@@ -78,7 +78,7 @@ struct s_symbole_node
 
 typedef struct s_symbol_table
 {
-	struct s_symbole_node base_arr[DEFAULT_TABLE_SIZE];
+	struct s_symbole_node base_arr[TABLE_SIZE];
 }	t_symbol_table;
 
 struct s_node
@@ -143,8 +143,7 @@ typedef struct s_c_instr
 {
 	uint16_t		jmp			:3;
 	uint16_t		dest		:3;
-	uint16_t		comp		:6;
-	uint16_t		a_type		:1;
+	uint16_t		comp		:7;
 	uint16_t		padding		:2;
 	uint16_t		is_c_inst	:1;
 }	__attribute__((packed)) t_c_instr;
@@ -161,8 +160,7 @@ typedef struct s_c_instr
 {
 	uint16_t		is_c_inst	:1;
 	uint16_t		padding		:2;
-	uint16_t		a_type		:1;
-	uint16_t		comp		:6;
+	uint16_t		comp		:7;
 	uint16_t		dest		:3;
 	uint16_t		jmp			:3;
 }	__attribute__((packed)) t_c_instr;

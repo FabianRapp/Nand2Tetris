@@ -5,6 +5,7 @@
 //I want to learn how the compiler handels very verbouse value comparisions
 //of on compile time unknown values
 
+
 /*
 All possiblities for the c instruction at this points (cleanned inputs):
 
@@ -105,14 +106,38 @@ static	__attribute__((always_inline)) bool	is_charset(char c)
 		case 'N': return (true);
 		case 'P': return (true);
 		default:
-			printf("error, got '%c'\n", c);
+			assume(0);
 			return (false);
 	}
 }
 
+//many optimizations possible
 static	__attribute__((always_inline)) size_t	assume_strlen(char *s)
 {
+	switch (s[0])
+	{
+		case ';': return 4;
+		case '\0': assume(0);
+		default:
+		assume(is_charset(s[1]));
+		switch(s[1])
+		{
+			case '\0': return 1;
+			case ';': return 5;
+			default:
+			switch(s[2])
+			{
+				case '\0': return 2;
+				case ';': return 6;
+				default:
+				sdf
+			}
+		}
+	}
+
+
 	size_t	len = 0;
+
 	while (s[len])
 	{
 		assume(is_charset(s[len]));
@@ -267,6 +292,125 @@ static __attribute__((always_inline)) void	eq_len(char *s, int len)
 	assume(len<=7);
 }
 
+//s has to be the start of the compute part
+//does not give the compiler info atm
+size_t	comp_val(char *s)
+{
+	switch (s[0])
+	{
+		case '0': return (0x2A);
+		case '1': return (0x3F);
+		case '!':
+		{
+			switch (s[1])
+			{
+				case 'D': return (0xD);
+				case 'A': return (0x31);
+				case 'M': return (0x71);
+				default: assume(0);
+			}
+		}
+		case '-':
+		{
+			switch (s[1])
+			{
+				case '1': return (0x3a);
+				case 'D': return (0xf);
+				case 'A': return (0x33);
+				case 'M': return (0x73);
+				default: assume(0);
+			}
+		}
+		case 'D':
+		{
+			switch(s[1])
+			{
+				case '\0': return (0xc);
+				case ';': return (0xc);
+				case '+':
+				{
+					switch (s[2])
+					{
+						case '1': return (0x1f);
+						case 'A': return (0x2);
+						case 'M': return (0x42);
+						default: assume(0);
+					}
+				}
+				case '-':
+				{
+					switch (s[2])
+					{
+						case '1': return (0xe);
+						case 'A': return (0x13);
+						case 'M': return (0x53);
+						default: assume(0);
+					}
+				}
+				case '&':
+				{
+					switch (s[2])
+					{
+						case 'A': return (0x0);
+						case 'M': return (0x40);
+						default: assume(0);
+					}
+				}
+				case '|':
+				{
+					switch (s[2])
+					{
+						case 'A': return (0x15);
+						case 'M': return (0x55);
+						default: assume(0);
+					}
+				}
+			}
+		}
+		case 'A':
+		{
+			switch (s[1])
+			{
+				case '-':
+				{
+					switch (s[2])
+					{
+						case '1': return (0x32);
+						case 'D': return (0x7);
+						default: assume(0);
+					}
+				}
+				case '+': return (0x37);
+				case '\0': return (0x30);
+				case ';': return (0x30);
+				default: assume(0);
+			}
+		}
+		case 'M':
+		{
+			switch (s[1])
+			{
+				case '\0': return (0x70);
+				case ';': return (0x70);
+				case '+': return (0x77);
+				case '-':
+				{
+					switch (s[2])
+					{
+						case '1': return (0x72);
+						case 'D': return (0x47);
+						default: assume(0);
+					}
+				}
+				default: assume (0);
+			}
+		}
+		default: assume(0);
+	}
+	assume(0);
+	return (0);
+}
+
 // should heavily rely on compile time
 // should allow the compile to optimize allot on compile time
 // basically a super complex lookup table to reduce runtime checks
@@ -275,16 +419,19 @@ static __attribute__((always_inline)) void	eq_len(char *s, int len)
 static inline t_instruction	fill_c_instruction(char *s)
 {
 	assume(s && *s);
-	t_instruction	inst = {.c={.is_c_inst=1, .padding=3, .a_type=0,.comp=0,.dest=0,.jmp=0}};
+	t_instruction	inst = {.c={.is_c_inst=1, .padding=3, .comp=0,.dest=0,.jmp=0}};
 	size_t len = assume_strlen(s);
 	base(s, len);
 	small_len(s, len);
 	eq_len(s, len);
+	size_t	comp_start = 0;
 	//explains what valid semicolns and what valid jumps are
 	for (int i = 0; i<=len; i++)
 	{
 		if (i < len)
 			assume(s[i]);
+		if (s[i] == '=')
+			comp_start = i + 1;
 		if (s[i] == ';' && len > i + 1)
 		{
 			c_only_pos(s, ';', i, len);
@@ -299,8 +446,8 @@ static inline t_instruction	fill_c_instruction(char *s)
 				assume(len >= 7);
 			}
 			//=========fill JMP============
-			// frst direct matches
-			if (s[i+2] == 'E')
+			// todo: way more assumtions tbd here
+			if (s[i+2] == 'E')//JEQ
 			{
 				inst.c.jmp = 0b010;
 				c_only_pos(s, 'Q', i+3, len);
@@ -310,20 +457,43 @@ static inline t_instruction	fill_c_instruction(char *s)
 				no_c(s, 'N');
 				no_c(s, 'P');
 			}
-			else
-			{
-			}
-			if (s[i+3] == 'P')
+			else if (s[i+3] == 'P')//JMP
 			{
 				inst.c.jmp = 0b111;
 				assume(s[i+2] == 'M');
 				c_only_pos(s, 'P', i+3, len);
 			}
-			else
+			else if (s[i+2] == 'G')
 			{
 				no_c(s, 'P');
+				if (s[i+3] == 'E')//JGE
+				{
+					inst.c.jmp = 0b011;
+				}
+				else//JGT
+				{
+					inst.c.jmp = 0b001;
+					assume(s[i+3] == 'T');
+				}
 			}
-			//todo JGT, JGE, JLT, JNE, JLE
+			else if (s[i+2] == 'L')
+			{
+				no_c(s, 'P');
+				if (s[i+3] == 'T')//JLT
+				{
+					inst.c.jmp = 0b100;
+				}
+				else//JJLE
+				{
+					inst.c.jmp = 0b110;
+					assume(s[i+3] == 'E');
+				}
+			}
+			else//JNE
+			{
+				inst.c.jmp = 0b101;
+				no_c(s, 'P');
+			}
 			//=============================
 
 		}
@@ -361,6 +531,7 @@ static inline t_instruction	fill_c_instruction(char *s)
 			inst.c.jmp = 0;
 		}
 	}
+	inst.c.comp = comp_val(s + comp_start);
 	if (has_dest(s, len))
 	{
 		if (*(s+1) == '=')

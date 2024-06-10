@@ -1,6 +1,6 @@
 
 CC = clang
-CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O0 -pthread
+CFLAGS =-D_FILE_OFFSET_BITS=64 -g -O3 -pthread -march=native
 #-fsanitize=address
 #-fsanitize=address 
 NAME = assembler
@@ -25,8 +25,18 @@ run: all
 	./assembler
 
 test_instruction: $(BASE_OBJS)
-	$(CC) $(CFLAGS) $(BASE_OBJS) test_instruction.c -o instruction_test
+	$(CC) $(CFLAGS) $(BASE_SRC) test_instruction.c -o instruction_test
 
+test_instruction_fast: $(BASE_OBJS)
+	$(CC) $(CFLAGS) -pg -fprofile-use -DNDEBUG=1 $(BASE_SRC) test_instruction.c -o instruction_test_fast
+
+llvm_profdata_mege:
+	llvm-profdata merge -sparse default_*.profraw -o default.profdata
+
+test_instruction_fast_gen: $(BASE_OBJS)
+	$(CC) $(CFLAGS) -fprofile-generate -DNDEBUG=1 $(BASE_SRC) test_instruction.c -o instruction_test_fast_gen
+src:
+	clang $(CFLAGS) $(SRC) -o $(NAME)
 
 prof:
 	gcc -pg -g -D_FILE_OFFSET_BITS=64 -O3 -march=native $(SRC) -o $(NAME) -DNDEBUG=1
@@ -52,9 +62,6 @@ scheduler_prof:
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c $< -o $@
-
-lsp: clean
-	bear -- make
 
 test_file:
 	$(CC) -Ofast -D_FILE_OFFSET_BITS=64 make_test_input.c -o gen_input
