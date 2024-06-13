@@ -2,6 +2,7 @@
 # define SIMPLE_ASSEMBLER_H
 
 #include "../assembler.h"
+#include <ctype.h>
 
 typedef struct s_list_node
 {

@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdatomic.h>
 #include <stdalign.h>
-#include <endian.h>
+#include <machine/endian.h>
 
 //intel headers
 #include <x86intrin.h>
