@@ -1,0 +1,33 @@
+CHIP LookAhead4{
+	IN a[4], b[4], C0;
+	OUT sum[4], C4;
+
+	PARTS:
+
+	Xor(a=a[0], b=b[0], out=aXORb0, out=P0);
+	Xor(a=a[1], b=b[1], out=aXORb1, out=P1);
+	Xor(a=a[2], b=b[2], out=aXORb2, out=P2);
+	Xor(a=a[3], b=b[3], out=aXORb3, out=P3);
+
+	And(a=a[0], b=b[0], out=G0);
+	And(a=a[1], b=b[1], out=G1);
+	And(a=a[2], b=b[2], out=G2);
+	And(a=a[3], b=b[3], out=G3);
+
+	And(a=C0, b=P0, out=cP0);
+	Or(a=cP0, b=G0, out=C1);
+
+	And(a=C1, b=P1, out=C1P1);
+	Or(a=G1, b=C1P1, out=C2);
+
+	And(a=C2, b=P2, out=C2P2);
+	Or(a=G2, b=C2P2, out=C3);
+
+	And(a=C3, b=P3, out=C3P3);
+	Or(a=G3, b=C3P3, out=C4);
+
+	Xor(a=aXORb0, b=C0, out=sum[0]);
+	Xor(a=aXORb1, b=C1, out=sum[1]);
+	Xor(a=aXORb2, b=C2, out=sum[2]);
+	Xor(a=aXORb3, b=C3, out=sum[3]);
+}

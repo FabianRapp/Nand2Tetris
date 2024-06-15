@@ -44,13 +44,6 @@
  *e: end
  */
 
-/*
-I spend all day debugging this...Appearently my code works but the tester
-expects that the build in modules like keyboard and sceen should use the
-provied chips and should not be implemented..
-Only when I switch to the online IDE it the buildin Chips are listed...
-FUUUCK
-*/
 CHIP Memory {
     IN in[16], load, address[15];
     OUT out[16];
@@ -81,7 +74,7 @@ CHIP Memory {
     // each of the two parts: in[16], load[1], address[12], out[16]
     Or(a=loadS0, b=loadS1, out=LoadTheStupidBuiltInScreen);
     Screen(in=in, load=LoadTheStupidBuiltInScreen, address=address[0..12],
-        out=oldSCREEN0, out=oldSCREEN1);//who tf uses an online IDE...........
+        out=oldSCREEN0, out=oldSCREEN1);
     //RAM4K(in=in, load=loadS0, address=address[0..11], out=oldSCREEN0);
    // RAM4K(in=in, load=loadS1, address=address[0..11], out=oldSCREEN1);
 
