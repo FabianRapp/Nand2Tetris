@@ -1,5 +1,12 @@
 #include "assembler.h"
 
+void	panic(char *file, int line)
+{
+	fprintf(stderr, "Error: %s. In file %s and line %d\n", strerror(errno),
+		file, line);
+	exit(errno);
+}
+
 void	print_instruction(char *str, t_instruction inst, int fd)
 {
 	uint16_t	val = inst.full;

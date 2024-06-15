@@ -244,7 +244,7 @@ void	wait_threads(struct s_scheduler	*data)
 		pthread_join(data->parser_threads[i], NULL);
 	}
 	printf("all threads joined\n");
-	clean_queue(&data->token_queue);
+	clean_queue_locks(&data->token_queue);
 	//pthread_cond_destroy(&data->buffer.is_full);
 	//pthread_cond_destroy(&data->buffer.is_empty);
 }

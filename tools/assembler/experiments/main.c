@@ -56,14 +56,10 @@ char	*token_data_extraction(volatile char *buffer, size_t start, size_t offset)
 	size_t	real_start = start % BUFFER_SIZE;
 	if (real_start + offset < BUFFER_SIZE)
 	{
-		//printf("if\n");
-		//write(1, (char *)buffer + real_start, size);
-
 		memcpy(data, (void *)buffer + real_start, size);
 	}
 	else
 	{
-		//printf("else\n");
 		size_t first_size = BUFFER_SIZE - real_start;
 		assume(first_size < BUFFER_SIZE);
 		assume(size - first_size < BUFFER_SIZE);
@@ -80,7 +76,7 @@ inline int8_t	first_0xff_other_0x00(__m128i	bytes)
 	if (!mask)
 		return (-1);
 	assume(mask <= 0x7FFF && mask > 0);
-	return (__builtin_clz(mask));//clz counts leading zeros
+	return (__builtin_clz(mask));//clz: count leading zeros
 }
 
 // todo: change naming and logic to str based system (old was line based)
@@ -102,38 +98,44 @@ void	*lexer(void *thread_data)
 		local_tail = next_line_start;
 		while (local_tail < local_head)
 		{
+			while (local_tail + 16 >= local_head)
+			{
+				usleep(4000);
+				local_head = atomic_load(&data->buffer->head);
+				if (atomic_load(&data->buffer->finished))
+				{
+					size_t	fill_index = local_head % BUFFER_SIZE;
+					bzero(data->buffer + fill_index, 16 - (fill_index % 16));
+					break ;
+				}
+			}
 			__m128i	vec = _mm_loadu_si128(
 				(__m128i *)(data->buffer->buffer + adjusted_index));
-			__m128i nl_cmp = _mm_cmpeq_epi8(vec, newline);//16 bytes result,
-					 //1 for each char, each byte either full 1 or full 0
-			int nl_mask = _mm_movemask_epi8(nl_cmp);//takes the msb. of each byte 
-					 //and stores it in the first 16 bits
+			__m128i nl_cmp = _mm_cmpeq_epi8(vec, newline); // each byte in
+			// nl_cmp represents an index of the vector. If the byte is 0 no nl
+			int nl_mask = _mm_movemask_epi8(nl_cmp);//takes the msb. of each
+			//byte and stores it in the lower 16 bits of nl_mask
 			int offset = 0;
-			int i = 0;
 			while (nl_mask != 0)
-			//if (mask != 0)
 			{
-				offset = __builtin_ctz(nl_mask);//count trailing zeros as the index
-				//printf("offset: %d\n", offset);
-				if (offset + local_tail >= local_head)
-					break ;
-				t_token	token;
+				offset = __builtin_ctz(nl_mask);//count trailing zeros
 				assume(offset<16);
 				int	real_offset = ((long)local_tail) - ((long)next_line_start) + offset;
-				//skip lines that can only be a comment or nothing (valid syntax is expected)
 				if (real_offset > 0)
 				{
 					assume(real_offset >= 0);
-					token.data = token_data_extraction(data->buffer->buffer,
-						next_line_start, real_offset);
-					token.index = token_index++;
+					t_token token = {
+						.data = token_data_extraction(
+							data->buffer->buffer, next_line_start, real_offset),
+						.index = token_index++,
+						.next = NULL,
+					};
 					add_token(data->queue, token);
 				}
 				next_line_start = local_tail + offset + 1;
 				atomic_store(&data->buffer->tail, next_line_start);
 				//mask >>= offset + 1;
-				nl_mask &= nl_mask - 1; //remove the least significant bit
-				i++;
+				nl_mask &= nl_mask - 1;
 			}
 			local_tail += 16;
 			adjusted_index = local_tail % BUFFER_SIZE;
@@ -162,6 +164,11 @@ void	*parser(void *thread_data)
 	return (NULL);
 }
 
+//todo:
+// should be simd
+// shold create tokens on the go (like the older lexer versions)
+// should not rely on reading thread to accept the need to write
+// to unalinged memory
 size_t	remove_spaces_cpu(volatile char *buffer, int read_bytes)
 {
 	size_t	byte_count = 0;
@@ -176,7 +183,7 @@ size_t	remove_spaces_cpu(volatile char *buffer, int read_bytes)
 		// the tools seem to ignore it the same way they ignore spaces
 		// space does not need to be checked since it's ascii is 32 but
 		// I will leave it for clearness
-		// for somereason tabs are interpreted as normal ascii and new lines are
+		// tabs are interpreted as normal ascii and new lines are
 		// the instruction or comment terminations
 		while (i < read_bytes && buffer[i] != '\n' && (is_comment ||
 			(buffer[i] != '\t'
@@ -319,7 +326,7 @@ void	wait_threads(struct s_scheduler	*data)
 		pthread_join(data->parser_threads[i], NULL);
 	}
 	printf("all threads joined\n");
-	clean_queue(&data->token_queue);
+	clean_queue_locks(&data->token_queue);
 	//pthread_cond_destroy(&data->buffer.is_full);
 	//pthread_cond_destroy(&data->buffer.is_empty);
 }

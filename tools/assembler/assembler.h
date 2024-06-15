@@ -15,7 +15,11 @@
 #include <stdint.h>
 #include <stdatomic.h>
 #include <stdalign.h>
+#ifdef TARGET_OS_MAC
 #include <machine/endian.h>
+#else
+#include <endian.h>
+#endif
 
 //intel headers
 #include <x86intrin.h>
@@ -62,25 +66,6 @@
 
 typedef struct s_token	t_token;
 
-struct s_symbole_reference
-{
-	struct s_symbole_reference	*next;
-	//some sort of index of where the symbole was unknown
-};
-
-struct s_symbole_node
-{
-	int							val;
-	char						*name;
-	struct s_symbole_node		*next;
-	struct s_symbole_reference	*to_fill_symboles;
-};
-
-typedef struct s_symbol_table
-{
-	struct s_symbole_node base_arr[TABLE_SIZE];
-}	t_symbol_table;
-
 struct s_node
 {
 	volatile int			index;
@@ -109,9 +94,7 @@ typedef struct s_token_queue
 	t_token				*volatile tail;
 	pthread_mutex_t		mutex;
 	pthread_cond_t		not_empty;
-	pthread_cond_t		not_full;//later
-	volatile int		count;
-	int					max_size;//later to move away from the heap
+	volatile size_t		count;
 }	t_token_queue;
 
 //volatiles should not be needed since the structs thems selfs
@@ -126,8 +109,8 @@ typedef struct	s_lexer
 //have made the fields volatile
 struct s_reader
 {
-	char							*path;
-	int								fd;
+	char					*path;
+	int						fd;
 	struct s_ring_buffer	*buffer;
 };
 
@@ -210,9 +193,11 @@ t_instruction	test_handle_instruction(char *single_instruction_str_data);
 void	init_token_queue(t_token_queue *queue);
 t_token	*get_token(t_token_queue *queue);
 void	add_token(t_token_queue *queue, t_token	new_token);
-void	clean_queue(t_token_queue *queue);
+void	clean_queue_locks(t_token_queue *queue);
 
 //debug_utils.c
 void	print_instruction(char *str, t_instruction instruction, int fd);
+void	panic(char *file, int line);
 
 #endif
+

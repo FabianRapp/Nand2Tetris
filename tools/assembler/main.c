@@ -9,13 +9,6 @@
 
 int out_fd = 1;
 
-void	panic(char *file, int line)
-{
-	fprintf(stderr, "Error: %s. In file %s and line %d\n", strerror(errno),
-		file, line);
-	exit(errno);
-}
-
 t_a_instr	a_instr_parser(t_symbole_table *symboles, char *str)
 {
 	static int	next_new_var_val = 16;

@@ -2,3 +2,6 @@
 *.out
 *.prof
 tools/assembler/*.hack
+*.cache
+*.cmp
+cmp.*
