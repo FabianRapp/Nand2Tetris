@@ -199,6 +199,8 @@ struct s_scheduler
 	struct s_reader			reader;
 };
 
+void	panic(char *file, int line);
+
 // signle_instruction_handeling.c
 void	handle_instruction(char *single_instruction_str_data);
 t_instruction	test_handle_instruction(char *single_instruction_str_data);

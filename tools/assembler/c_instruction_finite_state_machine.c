@@ -58,9 +58,6 @@ uint8_t	translate_short_comp(char c)
 		return (0xc);
 	else if (c == 'A')
 		return (0x30);
-	write(1, "\n", 1);
-	write(1, &c, 1);
-	write(1, "\n", 1);
 	assume(c == 'M');
 	return (0x70);
 }
@@ -209,8 +206,6 @@ t_c_instr	c_instr_finite_state_machine(char *s)
 	}
 	instruction.jmp = translate_jmp(s);
 	char c = instruction.jmp + '0';
-	//write(1, &c, 1);
-	//write(1, "\n", 1);
 	return (instruction);
 }
 
